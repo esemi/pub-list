@@ -1,27 +1,20 @@
-import hashlib
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import logging
 import random
 import re
 import string
-import urllib.parse
 
 from sanic import Sanic, response
 from sanic.response import json, redirect
 from sanic_redis import SanicRedis
-
+from sanic_jinja2 import SanicJinja2
 
 KEY_LEN = 8
 COOKIE_AUTH = 'pub-list-auth'
 HASH_REGEXP = re.compile(r"[^\w]", re.IGNORECASE)
 
-STATUS_VALID = 'valid'
-STATUS_INVALID = 'invalid'
-STATUS_FAIL = 'fail'
-VIES_WSDL = 'http://ec.europa.eu/taxation_customs/vies/checkVatService.wsdl'
-VAT_NUM_PATTERN = re.compile("^[A-Z]{2}[0-9A-Z\+\*\.]{2,12}$")
-CACHE_EXPIRE = 30 * 24 * 60 * 60
-CACHE_ENABLE = True
-TIMEOUT = 10
 
 logging_format = "[%(asctime)s] %(process)d-%(levelname)s "
 logging_format += "%(module)s::%(funcName)s():l%(lineno)d: "
@@ -38,6 +31,7 @@ app.config.from_object({'KEEP_ALIVE': False})
 app.config.update({'REDIS': {'address': ('127.0.0.1', 6379)}})
 app.static('/static', './static')
 SanicRedis(app)
+jinja = SanicJinja2(app)
 
 
 def cleanup_hash_param(hash: str):
@@ -62,6 +56,12 @@ def redis_task_list(hash: str):
 
 def redis_task_item(task_id):
     return 'task_item:%s' % cleanup_hash_param(task_id)
+
+
+def return_to_create():
+    log.info('return to create page')
+    url = app.url_for('create')
+    return redirect(url)
 
 
 @app.middleware('request')
@@ -98,32 +98,42 @@ async def create(request):
         await redis.rpush(redis_task_list(list_uid), task_id)
         log.info('new list and task create %s %s', list_uid, task_id)
 
-        url = app.url_for('edit', key=list_uid)
+        url = app.url_for('edit', list_uid=list_uid)
         return redirect(url)
 
 
-@app.get("/list/<key>/edit")
-async def edit(request, key):
-    log.info('edit list %s', key)
+@app.get("/list/<list_uid>/edit")
+async def edit(request, list_uid):
+    log.info('edit list %s', list_uid)
     with await request.app.redis as redis:
-        task_list = await redis.lrange(redis_task_list(key), 0, -1, encoding='utf-8')
+        task_len = await redis.llen(redis_task_list(list_uid))
+        log.info('task list %s', task_len)
+        if not task_len:
+            return return_to_create()
+        else:
+            return jinja.render('edit.html', request, task_uid=list_uid)
+
+
+@app.get("/list/<list_uid>/read")
+async def read(request, list_uid):
+    log.info('read list %s', list_uid)
+
+
+@app.get("/list/<list_uid>/task")
+async def task_list(request, list_uid):
+    log.info('task data %s', list_uid)
+    with await request.app.redis as redis:
+        task_list = await redis.lrange(redis_task_list(list_uid), 0, -1, encoding='utf-8')
         log.info('task list %s', task_list)
         if not task_list:
-            url = app.url_for('create')
-            return redirect(url)
-        else:
-            task_data = {
-                'uid': key,
-                'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8')) for task_id in task_list]
-            }
+            return return_to_create()
 
-    # todo template
-    return response.text('edit %s' % task_data)
-
-
-@app.get("/list/<key>/read")
-async def read(request, key):
-    log.info('read list %s', key)
+        task_data = {
+            'uid': list_uid,
+            'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8')) for task_id in
+                      task_list]
+        }
+        return response.json(task_data)
 
 
 if __name__ == '__main__':

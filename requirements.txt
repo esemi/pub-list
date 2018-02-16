@@ -1,4 +1,5 @@
 sanic
 sanic_redis
+sanic_jinja2
 gunicorn
 fabric3
