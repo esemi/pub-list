@@ -1,0 +1,4 @@
+sanic
+sanic_redis
+gunicorn
+fabric3
