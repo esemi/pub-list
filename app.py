@@ -34,23 +34,59 @@ SanicRedis(app)
 jinja = SanicJinja2(app)
 
 
+# noinspection PyUnresolvedReferences
 class Storage:
     @staticmethod
-    async def task_list_exist(app, list_uid: str) -> bool:
+    async def keygen(n, redis, template=lambda x: cleanup_hash_param(x)):
+        while True:
+            key = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+            if not await redis.exists(template(key)):
+                break
+        return key
+
+    @staticmethod
+    async def task_list_exist(list_uid: str) -> bool:
         with await app.redis as redis:
             return await redis.llen(redis_task_list(list_uid)) > 0
+
+    @classmethod
+    async def user_auth(cls, user_uid: str) -> tuple:
+        user_uid = cleanup_hash_param(user_uid)
+        with await app.redis as redis:
+            user_id = await redis.get(redis_user_auth(user_uid), encoding='utf-8')
+            if user_id:
+                log.info('user already auth %s', user_id)
+            else:
+                log.info('create user')
+                user_uid = await cls.keygen(KEY_LEN, redis, redis_user_auth)
+                user_id = await redis.incr('next_user_id')
+                await redis.set(redis_user_auth(user_uid), user_id)
+                log.info('new user %s %s', user_id, user_uid)
+        return user_uid, user_id
+
+    @classmethod
+    async def task_list_create(cls):
+        with await app.redis as redis:
+            task_id = await redis.incr('next_task_id')
+            await redis.hmset_dict(redis_task_item(task_id), {'title': '', 'checked': 0})
+            list_uid = await cls.keygen(KEY_LEN, redis, redis_task_list)
+            await redis.rpush(redis_task_list(list_uid), task_id)
+            log.info('new list and task create %s %s', list_uid, task_id)
+        return list_uid
+
+    @staticmethod
+    async def task_list_fetch(list_uid: str) -> dict:
+        with await app.redis as redis:
+            tasks = await redis.lrange(redis_task_list(list_uid), 0, -1, encoding='utf-8')
+            log.info('tasks %s', tasks)
+            task_data = {'uid': list_uid,
+                         'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8'))
+                                   for task_id in tasks]}
+            return task_data
 
 
 def cleanup_hash_param(hash: str):
     return HASH_REGEXP.sub('', str(hash))
-
-
-async def keygen(n, redis, template=lambda x: cleanup_hash_param(x)):
-    while True:
-        key = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
-        if not await redis.exists(template(key)):
-            break
-    return key
 
 
 def redis_user_auth(hash: str):
@@ -71,23 +107,14 @@ def return_to_create():
     return redirect(url)
 
 
+# todo enable only for auth requests
 @app.middleware('request')
 async def user_auth(request):
     auth_uid = request.cookies.get(COOKIE_AUTH, '')
     log.info('auth user %s', auth_uid)
-    with await request.app.redis as redis:
-        user_id = await redis.get(redis_user_auth(auth_uid), encoding='utf-8')
-        if user_id:
-            log.info('user already auth %s', user_id)
-        else:
-            log.info('create user')
-            auth_uid = await keygen(KEY_LEN, redis, redis_user_auth)
-            user_id = await redis.incr('next_user_id')
-            await redis.set(redis_user_auth(auth_uid), user_id)
-            log.info('new user %s %s', user_id, auth_uid)
-
-        request.app.auth_uid = auth_uid
-        request.app.user_id = user_id
+    auth_uid, user_id = await Storage.user_auth(auth_uid)
+    request.app.auth_uid = auth_uid
+    request.app.user_id = user_id
 
 
 @app.middleware('response')
@@ -98,21 +125,15 @@ async def user_auth_cookie(request, response):
 @app.get("/")
 async def create(request):
     log.info('create list')
-    with await request.app.redis as redis:
-        task_id = await redis.incr('next_task_id')
-        await redis.hmset_dict(redis_task_item(task_id), {'title': '', 'checked': 0})
-        list_uid = await keygen(KEY_LEN, redis, redis_task_list)
-        await redis.rpush(redis_task_list(list_uid), task_id)
-        log.info('new list and task create %s %s', list_uid, task_id)
-
-        url = app.url_for('edit', list_uid=list_uid)
-        return redirect(url)
+    list_uid = await Storage.task_list_create()
+    url = app.url_for('edit', list_uid=list_uid)
+    return redirect(url)
 
 
 @app.get("/list/<list_uid>/edit")
 async def edit(request, list_uid):
     log.info('edit list %s', list_uid)
-    if not await Storage.task_list_exist(app, list_uid):
+    if not await Storage.task_list_exist(list_uid):
         return return_to_create()
     else:
         return jinja.render('edit.html', request, task_uid=list_uid)
@@ -121,7 +142,7 @@ async def edit(request, list_uid):
 @app.get("/list/<list_uid>/read")
 async def read(request, list_uid):
     log.info('read list %s', list_uid)
-    if not await Storage.task_list_exist(app, list_uid):
+    if not await Storage.task_list_exist(list_uid):
         return return_to_create()
     else:
         return jinja.render('read.html', request, task_uid=list_uid)
@@ -130,18 +151,10 @@ async def read(request, list_uid):
 @app.get("/list/<list_uid>/task")
 async def task_list(request, list_uid):
     log.info('task data %s', list_uid)
-    with await request.app.redis as redis:
-        if not await Storage.task_list_exist(app, list_uid):
-            return return_to_create()
-
-        tasks = await redis.lrange(redis_task_list(list_uid), 0, -1, encoding='utf-8')
-        log.info('tasks %s', tasks)
-        task_data = {
-            'uid': list_uid,
-            'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8')) for task_id in
-                      tasks]
-        }
-        return response.json(task_data)
+    if not await Storage.task_list_exist(list_uid):
+        return return_to_create()
+    task_data = await Storage.task_list_fetch(list_uid)
+    return response.json(task_data)
 
 
 if __name__ == '__main__':
