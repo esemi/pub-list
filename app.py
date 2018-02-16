@@ -34,7 +34,9 @@ logging.basicConfig(
 log = logging.getLogger()
 
 app = Sanic(__name__)
+app.config.from_object({'KEEP_ALIVE': False})
 app.config.update({'REDIS': {'address': ('127.0.0.1', 6379)}})
+app.static('/static', './static')
 SanicRedis(app)
 
 
@@ -114,7 +116,7 @@ async def edit(request, key):
                 'uid': key,
                 'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8')) for task_id in task_list]
             }
-    print(task_data)
+
     # todo template
     return response.text('edit %s' % task_data)
 
