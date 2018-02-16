@@ -1,13 +1,20 @@
 import random
 import unittest
 
-from app import app, STATUS_INVALID, owner_hash_encode
+from app import app, STATUS_INVALID, cleanup_hash_param
+
+
+class CleanupParamTest(unittest.TestCase):
+    def test_basic(self):
+        provider = [
+            ('*&$*@&(::;"delete_4564654@*&*(&!(*!~-=_11', 'delete_4564654_11')
+        ]
+        for test, etalon in provider:
+            res = cleanup_hash_param(test)
+            self.assertEqual(res, etalon)
 
 
 class FrontEndpointTest(unittest.TestCase):
-    def test_owner_hash_encode(self):
-        res = owner_hash_encode('SDSDSDD', 'SADSDSDS')
-        self.assertEqual(res, '6123f77a161bb7165c435f46bf66ff6c806a8927b51d7267fed1e2600f612755b0da89c76dea3de052cd32b7bb5fa29dd3835a9134a7362019326ecffe1d59cd')
 
     def test_create(self):
 

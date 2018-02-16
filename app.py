@@ -12,7 +12,7 @@ from sanic_redis import SanicRedis
 
 KEY_LEN = 8
 COOKIE_AUTH = 'pub-list-auth'
-
+HASH_REGEXP = re.compile(r"[^\w]", re.IGNORECASE)
 
 STATUS_VALID = 'valid'
 STATUS_INVALID = 'invalid'
@@ -38,57 +38,55 @@ app.config.update({'REDIS': {'address': ('127.0.0.1', 6379)}})
 SanicRedis(app)
 
 
-# todo update expire for lists
+def cleanup_hash_param(hash: str):
+    return HASH_REGEXP.sub('', hash)
 
 
-def keygen(n):
-    return ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+async def keygen(n, redis, template='%s'):
+    while True:
+        key = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
+        if not await redis.exists(template % cleanup_hash_param(key)):
+            break
+    return key
+
+
+def redis_user_auth(hash: str):
+    return 'user:%s' % cleanup_hash_param(hash)
 
 
 @app.middleware('request')
 async def user_auth(request):
     auth_hash = request.cookies.get(COOKIE_AUTH, '')
     log.info('auth user %s', auth_hash)
-    if auth_hash or not isinstance(auth_hash, str):
-        with await request.app.redis as redis:
-            user_id = await redis.exists('user:%s' % auth_hash)
-            if user_id:
-                log.info('user already auth %s', user_id)
-                request.user_id = user_id
-                request.auth_hash = auth_hash
-            else:
-                log.info('create user')
-                while True:
-                    new_key = keygen(KEY_LEN)
-                    if not await redis.exists('user:%s' % new_key):
-                        break
-                user_id = redis.incr('next_user_id')
-                log.info('new user id %s', user_id)
+    with await request.app.redis as redis:
+        user_id = await redis.get(redis_user_auth(auth_hash))
+        if user_id:
+            log.info('user already auth %s', user_id)
+        else:
+            log.info('create user')
+            auth_hash = await keygen(KEY_LEN, redis, 'user:%s')
+            user_id = await redis.incr('next_user_id')
+            await redis.set(redis_user_auth(auth_hash), user_id)
+            log.info('new user %s %s', user_id, auth_hash)
+
+        request.app.auth_hash = auth_hash
+        request.app.user_id = user_id
 
 
 @app.middleware('response')
 async def user_auth_cookie(request, response):
-    pass
-
+    log.info('set user auth cookie %s %s', request.app.user_id, request.app.auth_hash)
+    response.cookies[COOKIE_AUTH] = request.app.auth_hash
 
 
 @app.get("/")
 async def create(request):
     log.info('create list')
+    # create empty list
+    # set cookie for owner
+    # redirect to edit
+    return response.text('Hello world!')
 
-
-    with await request.app.redis as cache:
-        # fixme
-        while True:
-            new_key = keygen(KEY_LEN)
-            if not await cache.exists(new_key):
-                break
-
-        log.info('new key gen %s', new_key)
-
-        # create empty list
-        # set cookie for owner
-        # redirect to edit
 
 
 @app.get("/edit/<key>")
