@@ -6,7 +6,7 @@ import string
 import urllib.parse
 
 from sanic import Sanic, response
-from sanic.response import json
+from sanic.response import json, redirect
 from sanic_redis import SanicRedis
 
 
@@ -39,13 +39,13 @@ SanicRedis(app)
 
 
 def cleanup_hash_param(hash: str):
-    return HASH_REGEXP.sub('', hash)
+    return HASH_REGEXP.sub('', str(hash))
 
 
-async def keygen(n, redis, template='%s'):
+async def keygen(n, redis, template=lambda x: cleanup_hash_param(x)):
     while True:
         key = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(n))
-        if not await redis.exists(template % cleanup_hash_param(key)):
+        if not await redis.exists(template(key)):
             break
     return key
 
@@ -54,58 +54,74 @@ def redis_user_auth(hash: str):
     return 'user:%s' % cleanup_hash_param(hash)
 
 
+def redis_task_list(hash: str):
+    return 'task_list:%s' % cleanup_hash_param(hash)
+
+
+def redis_task_item(task_id):
+    return 'task_item:%s' % cleanup_hash_param(task_id)
+
+
 @app.middleware('request')
 async def user_auth(request):
-    auth_hash = request.cookies.get(COOKIE_AUTH, '')
-    log.info('auth user %s', auth_hash)
+    auth_uid = request.cookies.get(COOKIE_AUTH, '')
+    log.info('auth user %s', auth_uid)
     with await request.app.redis as redis:
-        user_id = await redis.get(redis_user_auth(auth_hash))
+        user_id = await redis.get(redis_user_auth(auth_uid), encoding='utf-8')
         if user_id:
             log.info('user already auth %s', user_id)
         else:
             log.info('create user')
-            auth_hash = await keygen(KEY_LEN, redis, 'user:%s')
+            auth_uid = await keygen(KEY_LEN, redis, redis_user_auth)
             user_id = await redis.incr('next_user_id')
-            await redis.set(redis_user_auth(auth_hash), user_id)
-            log.info('new user %s %s', user_id, auth_hash)
+            await redis.set(redis_user_auth(auth_uid), user_id)
+            log.info('new user %s %s', user_id, auth_uid)
 
-        request.app.auth_hash = auth_hash
+        request.app.auth_uid = auth_uid
         request.app.user_id = user_id
 
 
 @app.middleware('response')
 async def user_auth_cookie(request, response):
-    log.info('set user auth cookie %s %s', request.app.user_id, request.app.auth_hash)
-    response.cookies[COOKIE_AUTH] = request.app.auth_hash
+    response.cookies[COOKIE_AUTH] = request.app.auth_uid
 
 
 @app.get("/")
 async def create(request):
     log.info('create list')
-    # create empty list
-    # set cookie for owner
-    # redirect to edit
-    return response.text('Hello world!')
+    with await request.app.redis as redis:
+        task_id = await redis.incr('next_task_id')
+        await redis.hmset_dict(redis_task_item(task_id), {'title': '', 'checked': 1})
+        list_uid = await keygen(KEY_LEN, redis, redis_task_list)
+        await redis.rpush(redis_task_list(list_uid), task_id)
+        log.info('new list and task create %s %s', list_uid, task_id)
+
+        url = app.url_for('edit', key=list_uid)
+        return redirect(url)
 
 
-
-@app.get("/edit/<key>")
+@app.get("/list/<key>/edit")
 async def edit(request, key):
     log.info('edit list %s', key)
-    # check cookie auth (allow edit or not)
+    with await request.app.redis as redis:
+        task_list = await redis.lrange(redis_task_list(key), 0, -1, encoding='utf-8')
+        log.info('task list %s', task_list)
+        if not task_list:
+            url = app.url_for('create')
+            return redirect(url)
+        else:
+            task_data = {
+                'uid': key,
+                'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8')) for task_id in task_list]
+            }
+    print(task_data)
+    # todo template
+    return response.text('edit %s' % task_data)
 
 
-@app.get("/read/<key>")
+@app.get("/list/<key>/read")
 async def read(request, key):
     log.info('read list %s', key)
-
-
-@app.get("/toggle-state/<key>/<num:int>")
-async def toggle(request, key, num: int):
-    log.info('toggle state list %s', key)
-
-
-
 
 
 if __name__ == '__main__':
