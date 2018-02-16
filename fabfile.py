@@ -8,7 +8,7 @@ from fabric.api import cd, env, run, local, lcd, put
 from fabric.contrib.files import exists
 
 
-env.user = 'billing'
+env.user = 'publist'
 env.app_env = 'default'
 
 BUILD_FILENAME = 'build.tar.gz'
@@ -18,15 +18,15 @@ LOCAL_BUILD_PATH = os.path.join(LOCAL_APP_PATH, 'build')
 LOCAL_BUILD_BUNDLE = os.path.join(LOCAL_APP_PATH, BUILD_FILENAME)
 
 REMOTE_HOME_PATH = os.path.join('/home', env.user)
-APP_PATH = os.path.join(REMOTE_HOME_PATH, 'billing-vat')
-DEPLOY_PATH = os.path.join(REMOTE_HOME_PATH, 'billing-vat-deploy')
-BACKUP_PATH = os.path.join(REMOTE_HOME_PATH, 'billing-vat-backup')
-VENV_PATH = os.path.join(REMOTE_HOME_PATH, 'venv-vat')
+APP_PATH = os.path.join(REMOTE_HOME_PATH, 'publist')
+DEPLOY_PATH = os.path.join(REMOTE_HOME_PATH, 'publist-deploy')
+BACKUP_PATH = os.path.join(REMOTE_HOME_PATH, 'publist-backup')
+VENV_PATH = os.path.join(REMOTE_HOME_PATH, 'venv')
 LOG_PATH = os.path.join(REMOTE_HOME_PATH, 'logs')
 
 
 def production():
-    env.hosts = ['billing-vat.semrush.net']
+    env.hosts = ['publist.esemi.ru']
 
 
 def deploy():
@@ -66,4 +66,4 @@ def deploy():
         run('rm -rf %s' % BACKUP_PATH)
     run('mv %s %s' % (APP_PATH, BACKUP_PATH))
     run('mv %s %s' % (DEPLOY_PATH, APP_PATH))
-    run('supervisorctl restart billing-vat')
+    run('supervisorctl restart publist')

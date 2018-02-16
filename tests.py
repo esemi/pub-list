@@ -4,7 +4,7 @@ from app import app, cleanup_hash_param, COOKIE_AUTH
 
 
 class CleanupParamTest(unittest.TestCase):
-    
+
     def test_basic(self):
         provider = [
             ('*&$*@&(::;"delete_4564654@*&*(&!(*!~-=_11', 'delete_4564654_11')
