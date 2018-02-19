@@ -29,7 +29,7 @@ log = logging.getLogger()
 app = Sanic(__name__)
 app.config.from_object({'KEEP_ALIVE': False})
 app.config.update({'REDIS': {'address': ('127.0.0.1', 6379)}})
-app.static('/static', './static')
+app.static('/static', './www/static')
 SanicRedis(app)
 jinja = SanicJinja2(app)
 

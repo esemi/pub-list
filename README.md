@@ -7,11 +7,11 @@
 - [x] Create list
 - [x] Edit list
 - [ ] Read list
-- [ ] Add/remove tasks in edit mode
 - [ ] Toggle tasks in read mode
 - [ ] Actions log
 - [ ] Tests
-- [ ] Deploy
+- [ ] Benchmark
+- [x] Deploy
 - [ ] Client-side improvement
 
 
