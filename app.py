@@ -7,14 +7,14 @@ import re
 import string
 
 from sanic import Sanic, response
-from sanic.response import json, redirect
+from sanic.response import redirect
 from sanic_redis import SanicRedis
 from sanic_jinja2 import SanicJinja2
 
 KEY_LEN = 8
 COOKIE_AUTH = 'pub-list-auth'
 HASH_REGEXP = re.compile(r"[^\w]", re.IGNORECASE)
-
+LIMIT_TASK_TITLE = 1000
 
 logging_format = "[%(asctime)s] %(process)d-%(levelname)s "
 logging_format += "%(module)s::%(funcName)s():l%(lineno)d: "
@@ -44,11 +44,6 @@ class Storage:
                 break
         return key
 
-    @staticmethod
-    async def task_list_exist(list_uid: str) -> bool:
-        with await app.redis as redis:
-            return await redis.llen(redis_task_list(list_uid)) > 0
-
     @classmethod
     async def user_auth(cls, user_uid: str) -> tuple:
         user_uid = cleanup_hash_param(user_uid)
@@ -64,20 +59,32 @@ class Storage:
                 log.info('new user %s %s', user_id, user_uid)
         return user_uid, user_id
 
+    @staticmethod
+    async def task_list_exist(list_uid: str) -> bool:
+        with await app.redis as redis:
+            return await redis.exists(redis_task_list_index(list_uid))
+
+    @classmethod
+    async def task_list_save_task(cls, list_uid: str, task_id: int=None, title: str='') -> int:
+        with await app.redis as redis:
+            if not task_id:
+                task_id = await redis.incr('next_task_id')
+            await redis.hmset_dict(redis_task_item(task_id), {'title': title, 'checked': 0})
+            await redis.sadd(redis_task_list(list_uid), task_id)
+        return task_id
+
     @classmethod
     async def task_list_create(cls):
         with await app.redis as redis:
-            task_id = await redis.incr('next_task_id')
-            await redis.hmset_dict(redis_task_item(task_id), {'title': '', 'checked': 0})
-            list_uid = await cls.keygen(KEY_LEN, redis, redis_task_list)
-            await redis.rpush(redis_task_list(list_uid), task_id)
-            log.info('new list and task create %s %s', list_uid, task_id)
+            list_uid = await cls.keygen(KEY_LEN, redis, redis_task_list_index)
+            await redis.hmset_dict(redis_task_list_index(list_uid), {'title': list_uid})
+            log.info('new list create %s', list_uid)
         return list_uid
 
     @staticmethod
     async def task_list_fetch(list_uid: str) -> dict:
         with await app.redis as redis:
-            tasks = await redis.lrange(redis_task_list(list_uid), 0, -1, encoding='utf-8')
+            tasks = await redis.smembers(redis_task_list(list_uid), encoding='utf-8')
             log.info('tasks %s', tasks)
             task_data = {'uid': list_uid,
                          'tasks': [dict(id=task_id, **await redis.hgetall(redis_task_item(task_id), encoding='utf-8'))
@@ -94,6 +101,10 @@ def redis_user_auth(hash: str):
 
 
 def redis_task_list(hash: str):
+    return 'task_list:%s:tasks' % cleanup_hash_param(hash)
+
+
+def redis_task_list_index(hash: str):
     return 'task_list:%s' % cleanup_hash_param(hash)
 
 
@@ -150,11 +161,22 @@ async def read(request, list_uid):
 
 @app.get("/list/<list_uid>/task")
 async def task_list(request, list_uid):
-    log.info('task data %s', list_uid)
+    log.info('fetch tasks for list %s', list_uid)
     if not await Storage.task_list_exist(list_uid):
         return return_to_create()
     task_data = await Storage.task_list_fetch(list_uid)
     return response.json(task_data)
+
+
+@app.put("/list/<list_uid>/task/<task_uid:int>")
+async def task_upsert(request, list_uid, task_uid: int):
+    log.info('update task for list %s %s %s', task_uid, list_uid, request.form)
+    if not await Storage.task_list_exist(list_uid):
+        return return_to_create()
+    title = request.form.get('title', '')
+    task_uid = await Storage.task_list_save_task(list_uid, task_uid, title[:LIMIT_TASK_TITLE])
+    log.info('upsert task %s', task_uid)
+    return response.json({'task_uid': task_uid})
 
 
 if __name__ == '__main__':

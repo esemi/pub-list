@@ -5,13 +5,14 @@
 - [x] Server app and route
 - [x] User auth
 - [x] Create list
-- [ ] Edit list
+- [x] Edit list
 - [ ] Read list
 - [ ] Add/remove tasks in edit mode
 - [ ] Toggle tasks in read mode
 - [ ] Actions log
 - [ ] Tests
 - [ ] Deploy
+- [ ] Client-side improvement
 
 
 ### Benchmark

@@ -51,12 +51,38 @@ class FrontEndpointTest(unittest.TestCase):
         request, response = app.test_client.get(valid_read_link, allow_redirects=False)
         self.assertEqual(response.status, 200)
 
+    def test_task_insert(self):
+        request, response = app.test_client.put('/list/INVALID/task/0', allow_redirects=False)
+        self.assertEqual(response.status, 302)
+
+        list_uid = self.test_create()[:-4]
+        insert_link = list_uid + 'task/0'
+        request, response = app.test_client.put(insert_link, allow_redirects=False, data={'title': 'unittest task title'})
+        self.assertEqual(response.status, 200)
+        self.assertIsInstance(response.json, dict)
+        self.assertIn('task_uid', response.json)
+        self.assertIsInstance(response.json['task_uid'], int)
+        return list_uid, response.json['task_uid']
+
+    def test_task_update(self):
+        list_link, task_uid = self.test_task_insert()
+        update_link = list_link + 'task/' + str(task_uid)
+        request, response = app.test_client.put(update_link, allow_redirects=False, data={'title': 'unittest task title updated'})
+        self.assertEqual(response.status, 200)
+        self.assertIsInstance(response.json, dict)
+        self.assertIn('task_uid', response.json)
+        self.assertIsInstance(response.json['task_uid'], int)
+        self.assertEqual(response.json['task_uid'], task_uid)
+        return response.json['task_uid']
+
     def test_task_list(self):
         request, response = app.test_client.get('/list/INVALID/task', allow_redirects=False)
         self.assertEqual(response.status, 302)
 
-        valid_read_link = self.test_create()[:-4] + 'task'
-        request, response = app.test_client.get(valid_read_link, allow_redirects=False)
+        list_link, _ = self.test_task_insert()
+
+        valid_fetch_link = list_link + 'task'
+        request, response = app.test_client.get(valid_fetch_link, allow_redirects=False)
         self.assertEqual(response.status, 200)
         self.assertIsInstance(response.json, dict)
         self.assertIn('uid', response.json)
@@ -68,7 +94,7 @@ class FrontEndpointTest(unittest.TestCase):
             self.assertIn('id', i)
             self.assertIn('title', i)
             self.assertIn('checked', i)
-            self.assertEqual(i['title'], '')
+            self.assertEqual(i['title'], 'unittest task title')
             self.assertEqual(i['checked'], '0')
 
 
