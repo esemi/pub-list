@@ -6,13 +6,13 @@
 - [x] User auth
 - [x] Create list
 - [x] Edit list
-- [ ] Read list
+- [x] Read list
 - [ ] Toggle tasks in read mode
-- [ ] Actions log
 - [ ] Tests
 - [ ] Benchmark
 - [x] Deploy
 - [ ] Client-side improvement
+- [ ] Actions log
 
 
 ### Benchmark

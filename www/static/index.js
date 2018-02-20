@@ -5,12 +5,14 @@ let task_uid_attr = 'data-js-task-uid';
 let list_uid_attr = 'data-js-task-list-uid';
 
 function focus(elem) {
-    elem.focus();
-    elem.select();
+    if (elem) {
+        elem.focus();
+        elem.select();
+    }
 }
 
 
-function createTaskEl(id, title) {
+function createTaskEditElem(id, title) {
     let li = document.createElement('li');
     li.setAttribute(task_uid_attr, encodeURIComponent(id));
     let input = document.createElement('input');
@@ -22,21 +24,45 @@ function createTaskEl(id, title) {
     return li;
 }
 
+function createTaskReadElem(id, title, checked) {
+    let li = document.createElement('li');
+    li.setAttribute(task_uid_attr, encodeURIComponent(id));
+    let checkbox = document.createElement('input');
+    checkbox.setAttribute('id', id)
+    checkbox.setAttribute('type', 'checkbox')
+    if (checked > 0) {
+        checkbox.checked = true;
+    }
+    let label = document.createElement('label')
+    label.setAttribute('for', id)
+    label.appendChild(document.createTextNode(title));
+    li.appendChild(checkbox);
+    li.appendChild(label);
+    return li;
+}
 
-function loadTasks(list_uid) {
+
+function loadTasks(list_uid, read_only=false) {
     fetch(new Request(`/list/${list_uid}/task`))
     .then(function(response) { return response.json(); })
     .then(function(response_json) {
-        let container = document.querySelector(`#task_list_edit`);
+        let container = document.querySelector(`ul[${list_uid_attr}]`);
         let tasks = response_json['tasks'];
         tasks.forEach(function(el, index, array) {
-            li = createTaskEl(el.id, el.title);
-            container.appendChild(li);
+            let li = null;
+            if (!!read_only) {
+                li = createTaskReadElem(el.id, el.title, el.checked);
+            } else {
+                li = createTaskEditElem(el.id, el.title);
+            }
+            if (!!li) {
+                container.appendChild(li);
+            }
         });
 
-        if (tasks.length < LIMIT_TASK_LIST_LEN) {
+        if (tasks.length < LIMIT_TASK_LIST_LEN && !read_only) {
             for (var i=0; i <= LIMIT_TASK_LIST_LEN - tasks.length; i++) {
-                li = createTaskEl(0, '');
+                li = createTaskEditElem(0, '');
                 container.appendChild(li);
             }
         }
@@ -47,7 +73,7 @@ function loadTasks(list_uid) {
 
 
 function handleChangeTaskTitle(e, list_uid) {
-    // todo trotling
+    // todo trottling
     let input = e.target
     let new_value = input.value;
     let current_li = input.closest(`li[${task_uid_attr}]`);
@@ -67,16 +93,24 @@ function handleChangeTaskTitle(e, list_uid) {
 
 document.addEventListener('DOMContentLoaded', function() {
 
-    let list_uid = document.querySelector(`#task_list_edit`).getAttribute(list_uid_attr);
+    let list_uid_edit = document.querySelector(`#task_list_edit`);
+    let list_uid_read = document.querySelector(`#task_list_read`);
 
-    // init task list
-    loadTasks(document.querySelector(`#task_list_edit`).getAttribute(list_uid_attr));
+    if (list_uid_edit) {
+        // init task list
+        loadTasks(list_uid_edit.getAttribute(list_uid_attr));
 
+        // task title change handler
+        document.addEventListener('keyup',  function(e) {
+            if (e.target.matches(`li[${task_uid_attr}] input`)) {
+                handleChangeTaskTitle(e, list_uid_edit.getAttribute(list_uid_attr));
+            }
+        });
+    }
 
-    // task title change handler
-    document.addEventListener('keyup',  function(e) {
-        if (e.target.matches(`li[${task_uid_attr}] input`)) {
-            handleChangeTaskTitle(e, list_uid);
-        }
-    });
+    if (list_uid_read) {
+        // init task list
+        loadTasks(list_uid_read.getAttribute(list_uid_attr), true);
+    }
+
 });
