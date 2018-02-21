@@ -7,13 +7,19 @@
 - [x] Create list
 - [x] Edit list
 - [x] Read list
-- [ ] Toggle tasks in read mode
+- [x] Toggle tasks in read mode
+- [x] Deploy
 - [ ] Tests
 - [ ] Benchmark
-- [x] Deploy
 - [ ] Client-side improvement
-- [ ] Actions log
 
 
 ### Benchmark
+```
 $ siege -c500 http://127.0.0.1:8021/
+```
+
+### Benchmark
+```
+$ fab production deploy
+```

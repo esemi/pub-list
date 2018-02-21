@@ -24,18 +24,22 @@ function createTaskEditElem(id, title) {
     return li;
 }
 
-function createTaskReadElem(id, title, checked) {
+
+function createTaskReadElem(el) {
     let li = document.createElement('li');
-    li.setAttribute(task_uid_attr, encodeURIComponent(id));
+    li.setAttribute(task_uid_attr, encodeURIComponent(el.id));
     let checkbox = document.createElement('input');
-    checkbox.setAttribute('id', id)
+    checkbox.setAttribute('id', el.id)
     checkbox.setAttribute('type', 'checkbox')
-    if (checked > 0) {
+    if (el.checked && el.checked > 0) {
         checkbox.checked = true;
+        if (!el.edit) {
+            checkbox.setAttribute('disabled', 'disabled');
+        }
     }
     let label = document.createElement('label')
-    label.setAttribute('for', id)
-    label.appendChild(document.createTextNode(title));
+    label.setAttribute('for', el.id)
+    label.appendChild(document.createTextNode(el.title));
     li.appendChild(checkbox);
     li.appendChild(label);
     return li;
@@ -47,11 +51,12 @@ function loadTasks(list_uid, read_only=false) {
     .then(function(response) { return response.json(); })
     .then(function(response_json) {
         let container = document.querySelector(`ul[${list_uid_attr}]`);
+        container.innerHTML = '';
         let tasks = response_json['tasks'];
         tasks.forEach(function(el, index, array) {
             let li = null;
             if (!!read_only) {
-                li = createTaskReadElem(el.id, el.title, el.checked);
+                li = createTaskReadElem(el);
             } else {
                 li = createTaskEditElem(el.id, el.title);
             }
@@ -97,24 +102,23 @@ function handleChangeTaskTitle(e, list_uid) {
 
 
 function handleChangeTaskCheck(e, list_uid) {
+    // todo trottling
     let input = e.target
     let new_value = input.checked;
     let current_li = input.closest(`li[${task_uid_attr}]`);
     let task_uid = current_li.getAttribute(task_uid_attr)
 
-    console.log(input);
-    console.log(new_value);
-    console.log(current_li);
-
     let form = new FormData()
-    form.append('state', new_value);
-    return fetch(`/list/${list_uid}/task/${task_uid}/check`, {
+    form.append('state', Number(new_value));
+    return fetch(`/list/${list_uid}/task/${task_uid}/state`, {
         credentials: 'same-origin',
         method: "PUT",
         body: form
     })
     .then(function(response) {
-        // todo reload all tasks if incomplete task
+        if (response.status == 409) {
+            loadTasks(list_uid, true);
+        }
     });
 }
 

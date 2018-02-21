@@ -80,9 +80,9 @@ class Storage:
         return task_id
 
     @classmethod
-    async def task_bind(cls, list_uid: str, task_id: int, state: bool, user_uid: str):
+    async def task_bind(cls, task_id: int, state: bool, user_uid: str):
         with await app.redis as redis:
-            await redis.hmset_dict(redis_task_item(task_id), {'title': title, 'checked': int(state), 'user_uid': user_uid})
+            await redis.hmset_dict(redis_task_item(task_id), {'checked': int(state), 'owner_id': user_uid if state else 0})
         return task_id
 
     @classmethod
@@ -178,6 +178,12 @@ async def read(request, list_uid):
 async def task_list(request, list_uid):
     log.info('fetch tasks for list %s', list_uid)
     task_data = await Storage.task_list_fetch(list_uid)
+
+    for task in task_data:
+        checked = bool('checked' in task and int(task['checked']))
+        if checked and task['owner_id'] == request.app.user_id:
+            task['edit'] = True
+
     return response.json({'tasks': task_data})
 
 
@@ -210,13 +216,27 @@ async def task_bind_state(request, list_uid, task_uid: int):
 
     try:
         task = [i for i in await Storage.task_list_fetch(list_uid) if int(i['id']) == task_uid][0]
+        log.info('task found %s', task)
     except:
         log.warning('task not found')
-        abort(403)
+        return abort(409)
 
-    print(task)
+    current_state = bool('checked' in task and int(task['checked']))
+    new_state = bool(int(request.form.get('state', 0)))
 
-    return response.json({'state': task_uid})
+    if current_state == new_state:
+        log.info('equal states')
+        abort(409)
+    else:
+        log.info('update state %s %s %s', current_state, new_state, request.app.user_id)
+        # if already checked - validate owner
+        if current_state:
+            if task['owner_id'] != request.app.user_id:
+                log.warning('owner restrict %s %s', task['owner_id'], request.app.user_id)
+                abort(409)
+        await Storage.task_bind(task_uid, new_state, request.app.user_id)
+
+    return response.json({'state': new_state})
 
 
 if __name__ == '__main__':
