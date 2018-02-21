@@ -52,11 +52,11 @@ class FrontEndpointTest(unittest.TestCase):
         self.assertEqual(response.status, 200)
 
     def test_task_insert(self):
-        request, response = app.test_client.put('/list/INVALID/task/0', allow_redirects=False)
+        request, response = app.test_client.put('/list/INVALID/task/0/upsert', allow_redirects=False)
         self.assertEqual(response.status, 302)
 
         list_uid = self.test_create()[:-4]
-        insert_link = list_uid + 'task/0'
+        insert_link = list_uid + 'task/0/upsert'
         request, response = app.test_client.put(insert_link, allow_redirects=False, data={'title': 'unittest task title'})
         self.assertEqual(response.status, 200)
         self.assertIsInstance(response.json, dict)
@@ -66,13 +66,18 @@ class FrontEndpointTest(unittest.TestCase):
 
     def test_task_update(self):
         list_link, task_uid = self.test_task_insert()
-        update_link = list_link + 'task/' + str(task_uid)
+        update_link = list_link + 'task/' + str(task_uid) + '/upsert'
         request, response = app.test_client.put(update_link, allow_redirects=False, data={'title': 'unittest task title updated'})
         self.assertEqual(response.status, 200)
         self.assertIsInstance(response.json, dict)
         self.assertIn('task_uid', response.json)
         self.assertIsInstance(response.json['task_uid'], int)
         self.assertEqual(response.json['task_uid'], task_uid)
+
+        valid_fetch_link = list_link + 'task'
+        request, res = app.test_client.get(valid_fetch_link, allow_redirects=False)
+        print(res.json)
+
         return response.json['task_uid']
 
     def test_task_list(self):

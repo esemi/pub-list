@@ -43,7 +43,7 @@ function createTaskReadElem(id, title, checked) {
 
 
 function loadTasks(list_uid, read_only=false) {
-    fetch(new Request(`/list/${list_uid}/task`))
+    fetch(new Request(`/list/${list_uid}/task`), {credentials: 'same-origin',})
     .then(function(response) { return response.json(); })
     .then(function(response_json) {
         let container = document.querySelector(`ul[${list_uid_attr}]`);
@@ -83,7 +83,11 @@ function handleChangeTaskTitle(e, list_uid) {
     if (!!new_value) {
         let form = new FormData()
         form.append('title', new_value);
-        fetch(`/list/${list_uid}/task/${task_uid}`, {method: "PUT",  body: form})
+        fetch(`/list/${list_uid}/task/${task_uid}/upsert`, {
+            credentials: 'same-origin',
+            method: "PUT",
+            body: form
+        })
         .then(function(response) { return response.json(); })
         .then(function(response_json) {
             current_li.setAttribute(task_uid_attr, encodeURIComponent(response_json['task_uid']))
@@ -91,17 +95,41 @@ function handleChangeTaskTitle(e, list_uid) {
     }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
 
+function handleChangeTaskCheck(e, list_uid) {
+    let input = e.target
+    let new_value = input.checked;
+    let current_li = input.closest(`li[${task_uid_attr}]`);
+    let task_uid = current_li.getAttribute(task_uid_attr)
+
+    console.log(input);
+    console.log(new_value);
+    console.log(current_li);
+
+    let form = new FormData()
+    form.append('state', new_value);
+    return fetch(`/list/${list_uid}/task/${task_uid}/check`, {
+        credentials: 'same-origin',
+        method: "PUT",
+        body: form
+    })
+    .then(function(response) {
+        // todo reload all tasks if incomplete task
+    });
+}
+
+
+
+document.addEventListener('DOMContentLoaded', function() {
     let list_uid_edit = document.querySelector(`#task_list_edit`);
     let list_uid_read = document.querySelector(`#task_list_read`);
 
     if (list_uid_edit) {
-        // init task list
+        // init task edit-list
         loadTasks(list_uid_edit.getAttribute(list_uid_attr));
 
         // task title change handler
-        document.addEventListener('keyup',  function(e) {
+        document.addEventListener('input',  function(e) {
             if (e.target.matches(`li[${task_uid_attr}] input`)) {
                 handleChangeTaskTitle(e, list_uid_edit.getAttribute(list_uid_attr));
             }
@@ -109,8 +137,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     if (list_uid_read) {
-        // init task list
+        // init task read-list
         loadTasks(list_uid_read.getAttribute(list_uid_attr), true);
+
+        // task title change handler
+        document.addEventListener('change',  function(e) {
+            if (e.target.matches(`li[${task_uid_attr}] input`)) {
+                handleChangeTaskCheck(e, list_uid_read.getAttribute(list_uid_attr));
+            }
+        });
     }
 
 });
