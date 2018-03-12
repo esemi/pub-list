@@ -26,8 +26,8 @@ VENV_PATH = os.path.join(REMOTE_HOME_PATH, 'venv')
 LOG_PATH = os.path.join(REMOTE_HOME_PATH, 'logs')
 
 
-def production():
-    env.hosts = ['159.65.200.222']
+def tests():
+    pass
 
 
 def deploy():
