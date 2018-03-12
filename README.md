@@ -1,5 +1,5 @@
 ## Fast todo list
-
+[![Build Status](https://travis-ci.org/esemi/pub-list.svg?branch=master)](https://travis-ci.org/esemi/pub-list)
 
 ### Task list backend
 - [x] Server app and route
