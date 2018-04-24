@@ -8,6 +8,6 @@ script:
 deploy:
   # deploy master to production
   provider: script
-  script: fab -H 159.65.200.222 deploy -p $SSH_PASS
+  script: fab -H publist.esemi.ru deploy -p $SSH_PASS
   on:
     branch: master
