@@ -1,25 +1,6 @@
-## Fast todo list
-[![Build Status](https://travis-ci.org/esemi/pub-list.svg?branch=master)](https://travis-ci.org/esemi/pub-list)
+Fast [todo-list](https://publist.esemi.ru/) [![Build Status](https://travis-ci.org/esemi/pub-list.svg?branch=master)](https://travis-ci.org/esemi/pub-list)
+---
 
-### Task list backend
-- [x] Server app and route
-- [x] User auth
-- [x] Create list
-- [x] Edit list
-- [x] Read list
-- [x] Toggle tasks in read mode
-- [x] Deploy
-- [ ] Tests
-- [ ] Benchmark
-- [ ] Client-side improvement
+Маленький туду-лист для списка подарков с возможностью забиндить подарок на себя. Юра, где макет?!
 
 
-### Benchmark
-```
-$ siege -c500 http://127.0.0.1:8021/
-```
-
-### Benchmark
-```
-$ fab production deploy
-```
