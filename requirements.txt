@@ -1,7 +1,0 @@
-sanic
-sanic_redis
-sanic_jinja2
-asynctest
-aiohttp
-gunicorn
-fabric3

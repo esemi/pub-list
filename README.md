@@ -15,3 +15,18 @@ TODO
 - [ ] frontend coding (only functionality from UX)
 - [ ] UI to freelance
 - [ ] up SSL cert
+
+
+### Pre-requirements
+- [redis server up and running](https://redis.io/docs/getting-started/installation/)
+- [python 3.9+](https://www.python.org/downloads/)
+
+### Local setup
+```shell
+$ git clone git@github.com:esemi/pub-list.git
+$ cd pub-list
+$ python3.9 -m venv venv
+$ source venv/bin/activate
+$ pip install -U poetry pip setuptools
+$ poetry install
+```
