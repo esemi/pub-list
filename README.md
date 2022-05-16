@@ -5,7 +5,7 @@ Fast [todo-list](https://publist.esemi.ru/) [![Build Status](https://travis-ci.o
 
 TODO
 ---
-- [ ] use poetry
+- [x] use poetry
 - [ ] use .env for settings
 - [ ] linters + tests to CI
 - [ ] deploy to github CI
