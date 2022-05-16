@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "pub-list"
+version = "0.1.0"
+description = ""
+authors = ["Simon Efremov <spam@esemi.ru>"]
+
+[tool.poetry.dependencies]
+python = "^3.9"
+sanic = "^22.3.2"
+sanic-redis = "^0.3.0"
+sanic-jinja2 = "^2022.1.13"
+aiohttp = "^3.8.1"
+uvicorn = "^0.17.6"
+
+[tool.poetry.dev-dependencies]
+asynctest = "^0.13.0"
+Fabric3 = "^1.14.post1"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

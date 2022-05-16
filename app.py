@@ -6,11 +6,10 @@ import random
 import re
 import string
 
-from sanic import Sanic, response
+from sanic import Sanic, response, exceptions
 from sanic.response import redirect
-from sanic.exceptions import abort
-from sanic_redis import SanicRedis
 from sanic_jinja2 import SanicJinja2
+from sanic_redis import SanicRedis
 
 KEY_LEN = 8
 COOKIE_AUTH = 'pub-list-auth'
@@ -28,7 +27,7 @@ logging.basicConfig(
 log = logging.getLogger()
 
 app = Sanic(__name__)
-app.config.from_object({'KEEP_ALIVE': False})
+app.config.KEEP_ALIVE = False
 app.config.update({'REDIS': {'address': ('127.0.0.1', 6379)}})
 app.static('/static', './www/static')
 SanicRedis(app)
@@ -127,7 +126,6 @@ def return_to_create():
     return redirect(url)
 
 
-# todo enable only for auth requests
 @app.middleware('request')
 async def user_auth(request):
     auth_uid = request.cookies.get(COOKIE_AUTH, '')
@@ -160,7 +158,7 @@ async def edit(request, list_uid):
         return return_to_create()
 
     if task_list['owner_id'] != request.app.user_id:
-        abort(403)
+        raise exceptions.Forbidden('Invalid task owner')
 
     return jinja.render('edit.html', request, task_uid=list_uid)
 
@@ -193,12 +191,14 @@ async def task_upsert(request, list_uid, task_uid: int):
     task_list = await Storage.task_list_find(list_uid)
     log.info('list found %s', task_list)
     if not task_list:
-        abort(404)
+        raise exceptions.NotFound('Task list not found')
+
     if task_list['owner_id'] != request.app.user_id:
-        abort(403)
+        raise exceptions.Forbidden('Invalid task owner')
+
     if task_uid and task_uid not in [int(i['id']) for i in await Storage.task_list_fetch(list_uid)]:
         log.warning('task not found')
-        abort(403)
+        raise exceptions.NotFound('Task not found')
 
     title = request.form.get('title', '')
     task_uid = await Storage.task_upsert(list_uid, task_uid, title[:LIMIT_TASK_TITLE])
@@ -212,28 +212,30 @@ async def task_bind_state(request, list_uid, task_uid: int):
     task_list = await Storage.task_list_find(list_uid)
     log.info('list found %s', task_list)
     if not task_list:
-        abort(404)
+        raise exceptions.NotFound('Task list not found')
 
     try:
         task = [i for i in await Storage.task_list_fetch(list_uid) if int(i['id']) == task_uid][0]
         log.info('task found %s', task)
     except:
         log.warning('task not found')
-        return abort(409)
+        raise exceptions.InvalidUsage('Task not found')
 
     current_state = bool('checked' in task and int(task['checked']))
     new_state = bool(int(request.form.get('state', 0)))
 
     if current_state == new_state:
         log.info('equal states')
-        abort(409)
+        raise exceptions.InvalidUsage('Already equal states')
+
     else:
         log.info('update state %s %s %s', current_state, new_state, request.app.user_id)
         # if already checked - validate owner
         if current_state:
             if task['owner_id'] != request.app.user_id:
                 log.warning('owner restrict %s %s', task['owner_id'], request.app.user_id)
-                abort(409)
+                raise exceptions.Forbidden('Invalid task owner')
+
         await Storage.task_bind(task_uid, new_state, request.app.user_id)
 
     return response.json({'state': new_state})
@@ -241,4 +243,3 @@ async def task_bind_state(request, list_uid, task_uid: int):
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8021, debug=False, workers=1, access_log=False)
-
