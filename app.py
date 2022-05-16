@@ -8,8 +8,8 @@ import string
 
 from sanic import Sanic, response, exceptions
 from sanic.response import redirect
-from sanic_redis import SanicRedis
 from sanic_jinja2 import SanicJinja2
+from sanic_redis import SanicRedis
 
 KEY_LEN = 8
 COOKIE_AUTH = 'pub-list-auth'
@@ -27,7 +27,7 @@ logging.basicConfig(
 log = logging.getLogger()
 
 app = Sanic(__name__)
-app.config.from_object({'KEEP_ALIVE': False})
+app.config.KEEP_ALIVE = False
 app.config.update({'REDIS': {'address': ('127.0.0.1', 6379)}})
 app.static('/static', './www/static')
 SanicRedis(app)
@@ -126,7 +126,6 @@ def return_to_create():
     return redirect(url)
 
 
-# todo enable only for auth requests
 @app.middleware('request')
 async def user_auth(request):
     auth_uid = request.cookies.get(COOKIE_AUTH, '')
@@ -244,4 +243,3 @@ async def task_bind_state(request, list_uid, task_uid: int):
 
 if __name__ == '__main__':
     app.run(host='127.0.0.1', port=8021, debug=False, workers=1, access_log=False)
-
