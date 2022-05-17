@@ -6,15 +6,11 @@ authors = ["Simon Efremov <spam@esemi.ru>"]
 
 [tool.poetry.dependencies]
 python = "^3.9"
-sanic = "^22.3.2"
-sanic-redis = "^0.3.0"
-sanic-jinja2 = "^2022.1.13"
-aiohttp = "^3.8.1"
-uvicorn = "^0.17.6"
 
 [tool.poetry.dev-dependencies]
-asynctest = "^0.13.0"
-Fabric3 = "^1.14.post1"
+mypy = "^0.950"
+pytest = "^7.1.2"
+wemake-python-styleguide = "^0.16.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

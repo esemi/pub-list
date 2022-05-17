@@ -7,8 +7,8 @@ TODO
 ---
 - [x] use poetry
 - [x] backend API todos
-- [ ] backend API tests todos
-- [ ] linters + tests to CI
+- [x] backend API tests todos
+- [x] linters + tests to CI
  
 - [ ] frontend coding (only functionality from UX)
 - [ ] impl backend API
