@@ -53,3 +53,7 @@ def bind_todo_list_task(task_uid: str, required_auth_user: User) -> Task:
     """Bind task for current logged user."""
     # todo update task.bind_user value by request
     ...
+
+
+def healthz() -> str:
+    return 'OK'
