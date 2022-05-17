@@ -25,32 +25,46 @@ class Todo:
     expired_at: datetime
 
 
-def sign_up() -> User:
+def create_todo_list():
+    """Create new todolist and redirect ro edit page."""
+    user = _sign_in_user()
+
+    # todo create empty todolist + ttl
+    # todo redirect to edit_todo_list
+    ...
+
+
+def _sign_in_user() -> User:
     # todo create new user-auth or sign-in by cookie value
     ...
 
 
-def create_todo_list(required_auth_user: User) -> Todo:
-    """Create new todolist."""
-    # todo create empty todolist
-    ...
-
-
-def get_todo_list(uid: str, required_auth_user: User) -> Todo:
-    """Fetch complete todolist with all tasks."""
+def edit_todo_list_page(uid: str):
+    """Show edit todolist page."""
+    user = _sign_in_user()
     # todo fetch todolist by uid
     ...
 
 
-def update_todo_list_task(uid: str, task_idx: int, title: str, required_auth_user: User) -> Task:
+def show_todo_list_page(uid: str):
+    """Show todolist page with bind buttons."""
+    user = _sign_in_user()
+    # todo fetch todolist by uid
+    # todo filter empty tasks
+    ...
+
+
+def update_task_api(uid: str, task_idx: int, title: str) -> Task:
     """Update todolist tasks."""
+    user = _sign_in_user()
     # todo check todolist ownership
     # todo update todolist.task title by idx
     ...
 
 
-def bind_todo_list_task(task_uid: str, required_auth_user: User) -> Task:
+def lock_task_api(task_uid: str, lock_status: bool) -> Task:
     """Bind task for current logged user."""
+    user = _sign_in_user()
     # todo update task.bind_user value by request
     ...
 
