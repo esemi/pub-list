@@ -6,14 +6,20 @@ Fast [todo-list](https://publist.esemi.ru/) [![Build Status](https://travis-ci.o
 TODO
 ---
 - [x] use poetry
-- [ ] up packages
-- [ ] use .env for settings
+- [x] backend API todos
+- [ ] backend API tests todos
 - [ ] linters + tests to CI
-- [ ] deploy by github CI (up server-side config too)
-- [ ] docstrings
-- [ ] backend changes for new UX (need check)
-- [ ] limit TTL for all storage keys
+ 
 - [ ] frontend coding (only functionality from UX)
+- [ ] impl backend API
+
+- [ ] user aut by cookie+hash-salt
+
+- [ ] use .env for settings
+- [ ] deploy by github CI (up server-side config too)
+
+- [ ] limit TTL for all storage keys
+
 - [ ] UI to freelance
 - [ ] up SSL cert
 
