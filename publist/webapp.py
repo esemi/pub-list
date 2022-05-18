@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import FastAPI, APIRouter, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import ORJSONResponse, RedirectResponse, Response
 
 from publist import storage
@@ -8,8 +8,6 @@ from publist.schemes import User
 from publist.settings import app_settings
 
 app = FastAPI(default_response_class=ORJSONResponse)
-router_pages = APIRouter(tags=["html pages"])
-router_api = APIRouter(prefix="/api", tags=["api"])
 
 
 @app.middleware("http")
@@ -23,7 +21,7 @@ async def sign_in_user_middleware(request: Request, call_next):
     return response
 
 
-@router_pages.get('/', response_class=RedirectResponse, status_code=302)
+@app.get('/', response_class=RedirectResponse, status_code=302, tags=['pages'])
 async def create_todo_list_page(request: Request):
     """Create new todolist and redirect ro edit page."""
     # todo test
@@ -77,7 +75,3 @@ async def _sign_in_user(auth_cookie_value: Optional[str]) -> User:
 #     user = _sign_in_user()
 #     # todo update task.bind_user value by request
 #     ...
-
-
-app.include_router(router_pages)
-app.include_router(router_api)
