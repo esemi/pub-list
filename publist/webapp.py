@@ -1,73 +1,66 @@
-from dataclasses import dataclass
-from datetime import datetime
-from typing import List
+from fastapi import FastAPI, APIRouter
+from fastapi.responses import ORJSONResponse, RedirectResponse
+
+from publist import storage
+from publist.schemes import User, Task
+from publist.settings import app_settings
+
+router_pages = APIRouter(tags=["html pages"])
+router_api = APIRouter(prefix="/api", tags=["api"])
 
 
-@dataclass
-class User:
-    id: int
-    auth_uid: str
-
-
-@dataclass
-class Task:
-    idx: int
-    uid: str
-    bind_user: int
-    title: str
-
-
-@dataclass
-class Todo:
-    owner_user: int
-    tasks: List[Task]
-    created_at: datetime
-    expired_at: datetime
-
-
-def create_todo_list():
+@router_pages.get('/', response_class=RedirectResponse, status_code=302)
+async def create_todo_list_page():
     """Create new todolist and redirect ro edit page."""
-    user = _sign_in_user()
+    # todo test
+    user = await _sign_in_user()
+    created_todolist = await storage.create_todolist(user.id, app_settings.todolist_ttl_days)
+    return f'/{created_todolist.owner_user_id}/edit'
 
-    # todo create empty todolist + ttl
-    # todo redirect to edit_todo_list
-    ...
 
-
-def _sign_in_user() -> User:
+async def _sign_in_user() -> User:
+    # todo test
     # todo create new user-auth or sign-in by cookie value
     ...
 
 
-def edit_todo_list_page(uid: str):
+@router_pages.get('/{uid}/edit')
+async def edit_todo_list_page(uid: str):
     """Show edit todolist page."""
     user = _sign_in_user()
+    # todo test
+    # todo impl
     # todo fetch todolist by uid
     ...
 
 
-def show_todo_list_page(uid: str):
+@router_pages.get('/{uid}/view')
+async def show_todo_list_page(uid: str):
     """Show todolist page with bind buttons."""
+    # todo test
     user = _sign_in_user()
     # todo fetch todolist by uid
     # todo filter empty tasks
     ...
 
 
-def update_task_api(uid: str, task_idx: int, title: str) -> Task:
+async def update_task_api(uid: str, task_idx: int, title: str) -> Task:
     """Update todolist tasks."""
+    # todo test
     user = _sign_in_user()
     # todo check todolist ownership
     # todo update todolist.task title by idx
     ...
 
 
-def lock_task_api(task_uid: str, lock_status: bool) -> Task:
+async def lock_task_api(task_uid: str, lock_status: bool) -> Task:
     """Bind task for current logged user."""
+    # todo test
     user = _sign_in_user()
     # todo update task.bind_user value by request
     ...
 
 
-def healthz() -> str:
-    return 'OK'
+app = FastAPI(default_response_class=ORJSONResponse)
+app.include_router(router_pages)
+app.include_router(router_api)

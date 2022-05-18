@@ -15,14 +15,14 @@ TODO
 - [ ] impl frontend
 
 - [ ] user aut by cookie+hash-salt
+- [ ] limit TTL for all storage keys
 
 - [ ] use .env for settings
 - [ ] deploy by github CI (up server-side config too)
 
-- [ ] limit TTL for all storage keys
-
 - [ ] UI to freelance
 - [ ] up SSL cert
+- [ ] CORS for api
 
 
 ### Pre-requirements
