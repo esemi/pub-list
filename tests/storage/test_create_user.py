@@ -2,7 +2,7 @@ import pytest
 
 from publist import storage, schemes
 
-pytestmark = pytest.mark.anyio
+pytestmark = pytest.mark.asyncio
 
 
 async def test_create_user_happy_path():

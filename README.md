@@ -17,7 +17,7 @@ TODO
 
 - [ ] impl frontend
 
-- [ ] limit TTL for all storage keys
+- [ ] TTL for all keys
 
 - [ ] use .env for settings
 - [ ] deploy by github CI (up server-side config too)

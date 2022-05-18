@@ -4,9 +4,8 @@ from fastapi import FastAPI, APIRouter, Request
 from fastapi.responses import ORJSONResponse, RedirectResponse, Response
 
 from publist import storage
-from publist.schemes import User, Task
+from publist.schemes import User
 from publist.settings import app_settings
-
 
 app = FastAPI(default_response_class=ORJSONResponse)
 router_pages = APIRouter(tags=["html pages"])
