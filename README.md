@@ -9,9 +9,10 @@ TODO
 - [x] backend API todos
 - [x] backend API tests todos
 - [x] linters + tests to CI
- 
-- [ ] frontend coding (only functionality from UX)
+- [x] frontend todos
+
 - [ ] impl backend API
+- [ ] impl frontend
 
 - [ ] user aut by cookie+hash-salt
 
@@ -36,8 +37,8 @@ $ python3.9 -m venv venv
 $ source venv/bin/activate
 $ pip install -U poetry pip setuptools
 $ poetry install
+$ python -m publist.webapp
 ```
-
 
 Links
 ---
