@@ -13,3 +13,9 @@ async def app_client() -> AsyncClient:
 
     async with AsyncClient(app=app, base_url="http://test") as test_client:
         yield test_client
+
+
+@pytest.fixture()
+async def auth(app_client):
+    app_client.cookies.set(session_key, session)
+    yield

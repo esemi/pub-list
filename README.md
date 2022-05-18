@@ -11,10 +11,12 @@ TODO
 - [x] linters + tests to CI
 - [x] frontend todos
 
+- [ ] user auth by cookie
+
 - [ ] impl backend API
+
 - [ ] impl frontend
 
-- [ ] user aut by cookie+hash-salt
 - [ ] limit TTL for all storage keys
 
 - [ ] use .env for settings
