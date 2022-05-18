@@ -54,10 +54,8 @@ async def create_todolist(owner_id: int, ttl_days: int) -> Todo:
 
 
 def cleanup_uid(uid: Optional[str]) -> str:
-    # todo test
     return '' if not uid else UID_REGEXP.sub('', str(uid))
 
 
 def generate_uid() -> str:
-    # todo test
     return cleanup_uid(uuid.uuid4().hex)
