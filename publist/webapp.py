@@ -11,13 +11,19 @@ app = FastAPI(default_response_class=ORJSONResponse)
 
 
 @app.middleware("http")
-async def sign_in_user_middleware(request: Request, call_next):
+async def sign_in_user_middleware(request: Request, call_next) -> Response:
     auth_cookie_value = request.cookies.get(app_settings.auth_cookie_key)
-    auth_user: User = await _sign_in_user(auth_cookie_value)
-    request.state.current_user = auth_user
 
+    auth_user: Optional[User] = None
+    if auth_cookie_value:
+        auth_user = await storage.get_user(uid=auth_cookie_value)
+    if not auth_user:
+        auth_user = await storage.create_user()
+
+    request.state.current_user = auth_user
     response: Response = await call_next(request)
     response.set_cookie(app_settings.auth_cookie_key, auth_user.auth_uid)
+
     return response
 
 
@@ -28,17 +34,6 @@ async def create_todo_list_page(request: Request):
     created_todolist = await storage.create_todolist(request.state.current_user.id, app_settings.todolist_ttl_days)
     return f'/{created_todolist.owner_user_id}/edit'
 
-
-async def _sign_in_user(auth_cookie_value: Optional[str]) -> User:
-    # todo test
-    auth_user = None
-    if auth_cookie_value:
-        auth_user = await storage.get_user(uid=auth_cookie_value)
-
-    if not auth_user:
-        auth_user = await storage.create_user()
-
-    return auth_user
 #
 #
 # @router_pages.get('/{uid}/edit')
