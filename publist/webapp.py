@@ -1,3 +1,5 @@
+"""Todolist web app."""
+from http import HTTPStatus
 from typing import Optional
 
 from fastapi import FastAPI, Request
@@ -10,8 +12,9 @@ from publist.settings import app_settings
 app = FastAPI(default_response_class=ORJSONResponse)
 
 
-@app.middleware("http")
+@app.middleware('http')
 async def sign_in_user_middleware(request: Request, call_next) -> Response:
+    """Auth user by cookie value."""
     auth_cookie_value = request.cookies.get(app_settings.auth_cookie_key)
 
     auth_user: Optional[User] = None
@@ -27,15 +30,12 @@ async def sign_in_user_middleware(request: Request, call_next) -> Response:
     return response
 
 
-@app.get('/', response_class=RedirectResponse, status_code=302, tags=['pages'])
+@app.get('/', response_class=RedirectResponse, status_code=HTTPStatus.TEMPORARY_REDIRECT, tags=['pages'])
 async def create_todo_list_page(request: Request):
     """Create new todolist and redirect ro edit page."""
-    # todo test
-    created_todolist = await storage.create_todolist(request.state.current_user.id, app_settings.todolist_ttl_days)
-    return f'/{created_todolist.owner_user_id}/edit'
+    created_todolist = await storage.create_todolist(request.state.current_user.id)
+    return f'/{created_todolist.uid}/edit'
 
-#
-#
 # @router_pages.get('/{uid}/edit')
 # async def edit_todo_list_page(uid: str):
 #     """Show edit todolist page."""

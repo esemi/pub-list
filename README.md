@@ -11,7 +11,7 @@ TODO
 - [x] linters + tests to CI
 - [x] frontend todos
 
-- [ ] user auth by cookie
+- [x] user auth by cookie
 
 - [ ] impl backend API
 

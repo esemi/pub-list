@@ -12,6 +12,6 @@ from publist import storage
     ('!@#$%RF DDljj09( ', 'RFDDljj09'),
 ])
 def test_cleanup_uid_happy_path(test: Optional[str], expected: str):
-    response = storage.cleanup_uid(test)
+    response = storage._cleanup_uid(test)
 
     assert response == expected
