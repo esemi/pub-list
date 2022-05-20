@@ -11,18 +11,20 @@ TODO
 - [x] linters + tests to CI
 - [x] frontend todos
 
+- [x] user auth by cookie
+
 - [ ] impl backend API
+
 - [ ] impl frontend
 
-- [ ] user aut by cookie+hash-salt
+- [ ] TTL for all keys
 
 - [ ] use .env for settings
 - [ ] deploy by github CI (up server-side config too)
 
-- [ ] limit TTL for all storage keys
-
 - [ ] UI to freelance
 - [ ] up SSL cert
+- [ ] CORS for api
 
 
 ### Pre-requirements
