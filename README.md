@@ -24,6 +24,7 @@ TODO
 
 - [ ] UI to freelance
 - [ ] up SSL cert
+- [ ] rate-limiter by nginx
 - [ ] CORS for api
 
 

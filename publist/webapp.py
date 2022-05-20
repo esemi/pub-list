@@ -1,9 +1,10 @@
 """Todolist web app."""
+import logging
 from http import HTTPStatus
 from typing import Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import ORJSONResponse, RedirectResponse, Response
+from fastapi.responses import ORJSONResponse, RedirectResponse, Response, HTMLResponse
 
 from publist import storage
 from publist.schemes import User
@@ -34,26 +35,43 @@ async def sign_in_user_middleware(request: Request, call_next) -> Response:
 async def create_todo_list_page(request: Request):
     """Create new todolist and redirect ro edit page."""
     created_todolist = await storage.create_todolist(request.state.current_user.id)
-    return f'/{created_todolist.uid}/edit'
+    return app.url_path_for("edit_todo_list_page", uid=created_todolist.uid)
 
-# @router_pages.get('/{uid}/edit')
-# async def edit_todo_list_page(uid: str):
-#     """Show edit todolist page."""
-#     # todo test
-#     # todo impl
-#     # todo fetch todolist by uid
-#     ...
-#
-#
-# @router_pages.get('/{uid}/view')
-# async def show_todo_list_page(uid: str):
-#     """Show todolist page with bind buttons."""
-#     # todo test
-#     user = _sign_in_user()
-#     # todo fetch todolist by uid
-#     # todo filter empty tasks
-#     ...
-#
+
+@app.get('/{uid}/edit', response_class=HTMLResponse, tags=['pages'])
+async def edit_todo_list_page(uid: str, request: Request):
+    """Show edit todolist page."""
+    todolist = await storage.get_todolist(uid)
+    if not todolist:
+        logging.warning('todolist auth=%s not found', uid)
+        return RedirectResponse(app.url_path_for('create_todo_list_page'))
+
+    if todolist.owner_user_id != request.state.current_user.id:
+        logging.warning(
+            'todolist auth=%s - owner mistake (%s given)',
+            uid,
+            request.state.current_user.id,
+        )
+        return RedirectResponse(app.url_path_for('view_todo_list_page', uid=uid))
+
+    # todo use html-template
+    return "<!DOCTYPE html><html></html>"
+
+
+@app.get('/{uid}/view', response_class=HTMLResponse, tags=['pages'])
+async def view_todo_list_page(uid: str):
+    """Show todolist page with bind buttons."""
+    todolist = await storage.get_todolist(uid)
+    if not todolist:
+        logging.warning('todolist auth=%s not found', uid)
+        return RedirectResponse(app.url_path_for("create_todo_list_page"))
+
+    todolist.tasks = [i for i in todolist.tasks if i.title]
+
+    # todo use html-template
+    return "<!DOCTYPE html><html></html>"
+
+
 #
 # async def update_task_api(uid: str, task_idx: int, title: str) -> Task:
 #     """Update todolist tasks."""
