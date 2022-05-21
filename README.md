@@ -23,6 +23,8 @@ TODO
 - [ ] deploy by github CI (up server-side config too)
 
 - [ ] UI to freelance
+
+- [ ] LICENSE.md
 - [ ] up SSL cert
 - [ ] rate-limiter by nginx
 - [ ] CORS for api
@@ -40,7 +42,7 @@ $ python3.9 -m venv venv
 $ source venv/bin/activate
 $ pip install -U poetry pip setuptools
 $ poetry install
-$ python -m publist.webapp
+$ poetry run uvicorn publist.webapp:app --loop=uvloop --reload
 ```
 
 Links

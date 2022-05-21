@@ -1,16 +1,23 @@
 """Todolist web app."""
 import logging
 from http import HTTPStatus
+from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, Request
-from fastapi.responses import ORJSONResponse, RedirectResponse, Response, HTMLResponse
+from fastapi.responses import RedirectResponse, Response, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 
 from publist import storage
 from publist.schemes import User
 from publist.settings import app_settings
 
-app = FastAPI(default_response_class=ORJSONResponse)
+
+app_path = Path(__file__).resolve().parent
+app = FastAPI()
+app.mount("/static", StaticFiles(directory=app_path.joinpath('static')), name='static')
+templates = Jinja2Templates(directory=app_path.joinpath('templates'))
 
 
 @app.middleware('http')
@@ -54,8 +61,16 @@ async def edit_todo_list_page(uid: str, request: Request):
         )
         return RedirectResponse(app.url_path_for('view_todo_list_page', uid=uid))
 
-    # todo use html-template
-    return "<!DOCTYPE html><html></html>"
+    max_task_id = 0
+    if todolist.tasks:
+        max_task_id = max({i.idx for i in todolist.tasks})
+
+    return templates.TemplateResponse('edit.html', {
+        'request': request,
+        'todolist': todolist,
+        'max_task_id': max_task_id,
+        'empty_task_count': max(1, 3 - len(todolist.tasks))
+    })
 
 
 @app.get('/{uid}/view', response_class=HTMLResponse, tags=['pages'])
@@ -73,7 +88,7 @@ async def view_todo_list_page(uid: str):
 
 
 #
-# async def update_task_api(uid: str, task_idx: int, title: str) -> Task:
+# async def upsert_task_api(todolist_uid: str, task_idx: int, title: str) -> Task:
 #     """Update todolist tasks."""
 #     # todo test
 #     user = _sign_in_user()
@@ -82,7 +97,7 @@ async def view_todo_list_page(uid: str):
 #     ...
 #
 #
-# async def lock_task_api(task_uid: str, lock_status: bool) -> Task:
+# async def lock_task_api(todolist_uid: str, task_uid: str, lock_status: bool) -> Task:
 #     """Bind task for current logged user."""
 #     # todo test
 #     user = _sign_in_user()

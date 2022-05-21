@@ -13,7 +13,7 @@ async def test_edit_todo_list_happy_path(
     response = await app_client.get(f"/{fixture_todolist.uid}/edit")
 
     assert response.status_code == 200
-    assert '<html>' in response.text
+    assert '<html' in response.text
 
 
 async def test_edit_todo_list_not_found(

@@ -54,6 +54,7 @@ async def get_todolist(uid: str) -> Optional[Todo]:
         return None
 
     # todo load tasks
+    # todo sort tasks by idx
 
     return Todo(
         uid=raw_todolist.get('uid'),
