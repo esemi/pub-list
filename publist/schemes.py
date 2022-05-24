@@ -1,7 +1,7 @@
 """App-specific types."""
 
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 
 @dataclass
@@ -18,8 +18,8 @@ class Task:
 
     idx: int
     uid: str
-    bind_user: int
     title: str
+    bind_user: Optional[int]
 
 
 @dataclass

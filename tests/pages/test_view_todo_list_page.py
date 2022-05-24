@@ -12,7 +12,7 @@ async def test_view_todo_list_page_for_customer(
     response = await app_client.get(f"/{fixture_todolist.uid}/view")
 
     assert response.status_code == 200
-    assert '<html>' in response.text
+    assert '<html' in response.text
 
 
 async def test_view_todo_list_page_for_owner(
@@ -23,7 +23,7 @@ async def test_view_todo_list_page_for_owner(
     response = await app_client.get(f"/{fixture_todolist.uid}/view")
 
     assert response.status_code == 200
-    assert '<html>' in response.text
+    assert '<html' in response.text
 
 
 async def test_view_todo_list_not_found(
