@@ -91,7 +91,9 @@ async def view_todo_list_page(uid: str, request: Request):
     })
 
 
-# async def upsert_task_api(todolist_uid: str, task_idx: int, title: str) -> Task:
+# async def remove_task_api(todolist_uid: str, task_uid: Optional[int], title: str) -> Task:
+
+# async def upsert_task_api(todolist_uid: str, task_uid: Optional[int], title: str) -> Task:
 #     """Update todolist tasks."""
 #     # todo test
 #     user = edit_sign_in_user()

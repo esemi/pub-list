@@ -7,13 +7,15 @@ from typing import Optional
 
 import aioredis
 
-from publist.schemes import Todo, User
+from publist.schemes import Todo, User, Task
 from publist.settings import app_settings
 
 UID_REGEXP = re.compile(r'\W', re.IGNORECASE)
 
 USER_KEY = 'publist:user:{0}'
 TODO_KEY = 'publist:todolist:{0}'
+TODO_TASKS_KEY = 'publist:todolist:{0}:tasks'
+TASK_KEY = 'publist:task:{0}'
 USER_ID_INCREMENT_KEY = 'publist:user:next_user_id'
 
 redis_pool: aioredis.Redis = aioredis.from_url(
@@ -47,36 +49,80 @@ async def create_user() -> User:
 
 async def get_todolist(uid: str) -> Optional[Todo]:
     """Get todolist by UID."""
+    # todo test with tasks
     raw_todolist = await redis_pool.hgetall(
         TODO_KEY.format(_cleanup_uid(uid)),
     )
     if not raw_todolist:
         return None
 
-    # todo load tasks
-    # todo sort tasks by idx
+    tasks = [
+        await get_task(task_uid)
+        for task_uid in await redis_pool.smembers(TODO_TASKS_KEY.format(uid))
+    ]
 
     return Todo(
         uid=raw_todolist.get('uid'),
         owner_user_id=int(raw_todolist.get('owner_user_id')),
-        tasks=[],
+        tasks=tasks,
     )
 
 
 async def create_todolist(owner_id: int) -> Todo:
     """Create new todolist for specified owner-user."""
-    todolist_mapping = {
-        'uid': _generate_uid(),
-        'owner_user_id': owner_id,
-    }
+    uid = _generate_uid()
     await redis_pool.hset(
-        TODO_KEY.format(todolist_mapping.get('uid')),
-        mapping=todolist_mapping,  # type: ignore
+        TODO_KEY.format(uid),
+        mapping={
+            'uid': uid,
+            'owner_user_id': owner_id
+        },
     )
     return Todo(
-        uid=todolist_mapping['uid'],  # type: ignore
-        owner_user_id=todolist_mapping['owner_user_id'],  # type: ignore
+        uid=uid,  # type: ignore
+        owner_user_id=owner_id,  # type: ignore
         tasks=[],
+    )
+
+
+async def get_task(uid: str) -> Optional[Task]:
+    # todo test
+    raw_task = await redis_pool.hgetall(
+        TASK_KEY.format(_cleanup_uid(uid)),
+    )
+    if not raw_task:
+        return None
+
+    return Task(
+        uid=uid,
+        title=raw_task.get('title'),
+        bind_user=int(raw_task.get('bind_user')) if raw_task.get('bind_user') else None,
+    )
+
+
+async def upsert_task(todolist_uid: str, task_uid: Optional[str], title: str) -> Task:
+    # todo test
+    if not task_uid:
+        task_uid = _generate_uid()
+
+    await redis_pool.hset(
+        TASK_KEY.format(task_uid),
+        mapping={
+            'uid': task_uid,
+            'title': title,
+            'bind_user': None,
+        }
+    )
+
+    await redis_pool.sadd(
+        TODO_TASKS_KEY.format(todolist_uid),
+        task_uid,
+    )
+
+    return Task(
+        uid=task_uid,
+        title=title,
+        bind_user=None,
     )
 
 

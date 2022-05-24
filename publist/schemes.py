@@ -16,7 +16,6 @@ class User:
 class Task:
     """Task from todolist."""
 
-    idx: int
     uid: str
     title: str
     bind_user: Optional[int]
