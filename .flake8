@@ -7,3 +7,11 @@ ignore =
     WPS226,  # Found string literal over-use - false-positive check
     WPS305,  # F-strings is OK
     WPS306,  # Used dataclasses
+
+per-file-ignores =
+    # WPS412 Found `__init__.py` module with logic
+    # F401: imported but unused
+    publist/storage/__init__.py: WPS412, F401,
+
+[isort]
+line_length = 125

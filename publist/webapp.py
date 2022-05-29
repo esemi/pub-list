@@ -28,9 +28,9 @@ async def sign_in_user_middleware(request: Request, call_next) -> Response:
 
     auth_user: Optional[User] = None
     if auth_cookie_value:
-        auth_user = await storage.get_user(uid=auth_cookie_value)
+        auth_user = await storage.user.get_user(uid=auth_cookie_value)
     if not auth_user:
-        auth_user = await storage.create_user()
+        auth_user = await storage.user.create_user()
 
     request.state.current_user = auth_user
     response: Response = await call_next(request)
@@ -42,7 +42,7 @@ async def sign_in_user_middleware(request: Request, call_next) -> Response:
 @app.get('/', response_class=RedirectResponse, status_code=HTTPStatus.TEMPORARY_REDIRECT, tags=['pages'])
 async def create_todo_list_page(request: Request):
     """Create new todolist and redirect ro edit page."""
-    created_todolist = await storage.create_todolist(request.state.current_user.id)
+    created_todolist = await storage.todolist.create_todolist(request.state.current_user.id)
     logging.info(f'create new todolist {created_todolist.uid=}')
     return app.url_path_for('edit_todo_list_page', uid=created_todolist.uid)
 
@@ -50,7 +50,7 @@ async def create_todo_list_page(request: Request):
 @app.get('/{uid}/edit', response_class=HTMLResponse, tags=['pages'])
 async def edit_todo_list_page(uid: str, request: Request):
     """Show edit todolist page."""
-    todolist = await storage.get_todolist(uid)
+    todolist = await storage.todolist.get_todolist(uid)
     if not todolist:
         logging.warning(f'todolist {uid=} not found')
         return RedirectResponse(app.url_path_for('create_todo_list_page'))
@@ -75,7 +75,7 @@ async def edit_todo_list_page(uid: str, request: Request):
 @app.get('/{uid}/view', response_class=HTMLResponse, tags=['pages'])
 async def view_todo_list_page(uid: str, request: Request):
     """Show todolist page with bind buttons."""
-    todolist = await storage.get_todolist(uid)
+    todolist = await storage.todolist.get_todolist(uid)
     if not todolist:
         logging.warning(f'todolist {uid=} not found')
         return RedirectResponse(app.url_path_for('create_todo_list_page'))

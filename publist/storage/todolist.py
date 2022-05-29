@@ -1,56 +1,18 @@
-"""Module for working with persistent storage."""
+"""Methods for work with Todolist and Task entities in redis."""
 
-import re
-import uuid
-from dataclasses import asdict
 from typing import Optional
 
-import aioredis
+from publist.schemes import Task, Todo
+from publist.storage.redis_helpers import cleanup_uid, generate_uid, redis_pool
 
-from publist.schemes import Todo, User, Task
-from publist.settings import app_settings
-
-UID_REGEXP = re.compile(r'\W', re.IGNORECASE)
-
-USER_KEY = 'publist:user:{0}'
 TODO_KEY = 'publist:todolist:{0}'
 TODO_TASKS_KEY = 'publist:todolist:{0}:tasks'
-TASK_KEY = 'publist:task:{0}'
-USER_ID_INCREMENT_KEY = 'publist:user:next_user_id'
-
-redis_pool: aioredis.Redis = aioredis.from_url(
-    app_settings.redis_dsn,
-    encoding='utf-8',
-    decode_responses=True,
-    max_connections=app_settings.redis_pool_size,
-)
-
-
-async def get_user(uid: str) -> Optional[User]:
-    """Get user by UID."""
-    raw_user = await redis_pool.hgetall(
-        USER_KEY.format(_cleanup_uid(uid)),
-    )
-    return User(
-        id=int(raw_user.get('id')),
-        auth_uid=raw_user.get('auth_uid'),
-    ) if raw_user else None
-
-
-async def create_user() -> User:
-    """Create new user."""
-    user = User(
-        id=await redis_pool.incr(USER_ID_INCREMENT_KEY),
-        auth_uid=_generate_uid(),
-    )
-    await redis_pool.hset(USER_KEY.format(user.auth_uid), mapping=asdict(user))
-    return user
 
 
 async def get_todolist(uid: str) -> Optional[Todo]:
     """Get todolist by UID."""
     raw_todolist = await redis_pool.hgetall(
-        TODO_KEY.format(_cleanup_uid(uid)),
+        TODO_KEY.format(cleanup_uid(uid)),
     )
     if not raw_todolist:
         return None
@@ -69,12 +31,12 @@ async def get_todolist(uid: str) -> Optional[Todo]:
 
 async def create_todolist(owner_id: int) -> Todo:
     """Create new todolist for specified owner-user."""
-    uid = _generate_uid()
+    uid = generate_uid()
     await redis_pool.hset(
         TODO_KEY.format(uid),
         mapping={
             'uid': uid,
-            'owner_user_id': owner_id
+            'owner_user_id': owner_id,
         },
     )
     return Todo(
@@ -84,9 +46,13 @@ async def create_todolist(owner_id: int) -> Todo:
     )
 
 
+TASK_KEY = 'publist:task:{0}'
+
+
 async def get_task(uid: str) -> Optional[Task]:
+    """Search task by uid."""
     raw_task = await redis_pool.hgetall(
-        TASK_KEY.format(_cleanup_uid(uid)),
+        TASK_KEY.format(cleanup_uid(uid)),
     )
     if not raw_task:
         return None
@@ -99,6 +65,12 @@ async def get_task(uid: str) -> Optional[Task]:
 
 
 async def get_task_or_raise(uid: str) -> Task:
+    """
+    Search task by uid and raise exception in nothing found case.
+
+    Raises:
+        RuntimeError: Task not found by uid.
+    """
     task = await get_task(uid)
     if not task:
         raise RuntimeError('Task not found')
@@ -111,8 +83,9 @@ async def upsert_task(
     task_uid: Optional[str] = None,
     bind_user: Optional[int] = None,
 ) -> Task:
+    """Insert or update task."""
     if not task_uid:
-        task_uid = _generate_uid()
+        task_uid = generate_uid()
 
     mapping = {
         'uid': task_uid,
@@ -133,11 +106,3 @@ async def upsert_task(
     )
 
     return await get_task_or_raise(uid=task_uid)
-
-
-def _cleanup_uid(uid: Optional[str]) -> str:
-    return UID_REGEXP.sub('', str(uid)) if uid else ''
-
-
-def _generate_uid() -> str:
-    return _cleanup_uid(uuid.uuid4().hex)
