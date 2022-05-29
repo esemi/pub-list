@@ -1,8 +1,4 @@
-import pytest
-
 from publist import schemes
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_edit_todo_list_happy_path(

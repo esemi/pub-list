@@ -6,8 +6,6 @@ from httpx import AsyncClient
 from publist import schemes, storage
 from publist.settings import app_settings
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture()
 async def app_client() -> AsyncClient:

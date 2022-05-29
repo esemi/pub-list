@@ -1,9 +1,5 @@
-import pytest
-
 from publist import storage, schemes
 from publist.settings import app_settings
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_auth_middleware_create_user(app_client):

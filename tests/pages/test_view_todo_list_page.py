@@ -1,8 +1,4 @@
-import pytest
-
 from publist import schemes
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_view_todo_list_page_for_customer(

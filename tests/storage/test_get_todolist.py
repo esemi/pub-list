@@ -1,8 +1,4 @@
-import pytest
-
 from publist import storage, schemes
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_get_todolist_happy_path(fixture_todolist: schemes.Todo):

@@ -1,8 +1,4 @@
-import pytest
-
 from publist import storage, schemes
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_upsert_task_insert(fixture_todolist: schemes.Todo):

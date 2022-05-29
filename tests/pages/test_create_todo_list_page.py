@@ -1,8 +1,4 @@
-import pytest
-
 from publist import storage, schemes
-
-pytestmark = pytest.mark.asyncio
 
 
 async def test_create_todo_list_new_user(app_client):
