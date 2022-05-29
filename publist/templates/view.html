@@ -3,12 +3,26 @@
     <head>
         <meta charset="UTF-8">
         <title>TodoList Edit</title>
-        <link rel="stylesheet" href="./assets/index.css" crossorigin="anonymous" />
+        <link rel="stylesheet" href="{{ url_for('static', path='/assets/index.css') }}" crossorigin="anonymous"/>
     </head>
     <body>
-        <ul class="js-owner-todolist" data-todolist-id="{{ }}">
+        <ul class="js-todolist-container" data-uid="{{ todolist.uid }}">
+            {% for task in todolist.tasks %}
+                <li class="js-todolist-task" data-uid="{{ task.uid }}" >
+                    <input type="checkbox" id="checkbox-{{ task.uid }}"
+                        {% if task.bind_user %}
+                             checked
+                        {% endif %}
 
+                        {% if task.bind_user and task.bind_user != current_user_id %}
+                            disabled
+                        {% endif %}
+                    >
+                    <label for="checkbox-{{ task.uid }}">{{ task.title }}</label>
+                </li>
+            {% endfor %}
         </ul>
-        <script defer type="text/javascript" src="./assets/app-edit.js"></script>
+        <script defer type="text/javascript" src="{{ url_for('static', path='/assets/app-view.js') }}">
+        </script>
     </body>
 </html>

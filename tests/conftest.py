@@ -6,8 +6,6 @@ from httpx import AsyncClient
 from publist import schemes, storage
 from publist.settings import app_settings
 
-pytestmark = pytest.mark.asyncio
-
 
 @pytest.fixture()
 async def app_client() -> AsyncClient:
@@ -35,9 +33,9 @@ def event_loop():
 
 @pytest.fixture
 async def fixture_user() -> schemes.User:
-    yield await storage.create_user()
+    yield await storage.user.create_user()
 
 
 @pytest.fixture
 async def fixture_todolist(fixture_user: schemes.User) -> schemes.Todo:
-    yield await storage.create_todolist(fixture_user.id)
+    yield await storage.todolist.create_todolist(fixture_user.id)

@@ -1,9 +1,9 @@
-from publist import storage
+from publist.storage import redis_helpers
 
 
 def test_generate_uid_happy_path():
-    res1 = storage._generate_uid()
-    res2 = storage._generate_uid()
+    res1 = redis_helpers.generate_uid()
+    res2 = redis_helpers.generate_uid()
 
     assert isinstance(res1, str)
     assert isinstance(res2, str)

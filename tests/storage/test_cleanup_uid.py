@@ -2,7 +2,7 @@ from typing import Optional
 
 import pytest
 
-from publist import storage
+from publist.storage import redis_helpers
 
 
 @pytest.mark.parametrize('test, expected', [
@@ -12,6 +12,6 @@ from publist import storage
     ('!@#$%RF DDljj09( ', 'RFDDljj09'),
 ])
 def test_cleanup_uid_happy_path(test: Optional[str], expected: str):
-    response = storage._cleanup_uid(test)
+    response = redis_helpers.cleanup_uid(test)
 
     assert response == expected
