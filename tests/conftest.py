@@ -37,5 +37,15 @@ async def fixture_user() -> schemes.User:
 
 
 @pytest.fixture
+async def fixture_user_second() -> schemes.User:
+    yield await storage.user.create_user()
+
+
+@pytest.fixture
 async def fixture_todolist(fixture_user: schemes.User) -> schemes.Todo:
     yield await storage.todolist.create_todolist(fixture_user.id)
+
+
+@pytest.fixture
+async def fixture_task(fixture_todolist: schemes.Todo) -> schemes.Task:
+    yield await storage.todolist.upsert_task(fixture_todolist.uid, 'task title')

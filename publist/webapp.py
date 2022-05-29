@@ -1,20 +1,21 @@
 """Todolist web app."""
 import logging
+import pathlib
 from http import HTTPStatus
-from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Form, HTTPException, Path, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from starlette.status import HTTP_400_BAD_REQUEST, HTTP_409_CONFLICT
 
 from publist import storage
-from publist.schemes import User
+from publist.schemes import Task, User
 from publist.settings import app_settings
 
 logging.basicConfig(level=logging.INFO)
-app_path = Path(__file__).resolve().parent
+app_path = pathlib.Path(__file__).resolve().parent
 
 app = FastAPI()
 app.mount('/static', StaticFiles(directory=app_path.joinpath('static')), name='static')
@@ -98,11 +99,54 @@ async def view_todo_list_page(uid: str, request: Request):
 #     # todo check todolist ownership
 #     # todo update todolist.task title by idx
 #     ...
-#
-#
-# async def lock_task_api(todolist_uid: str, task_uid: str, lock_status: bool) -> Task:
-#     """Bind task for current logged user."""
-#     # todo test
-#     user = _sign_in_user()
-#     # todo update task.bind_user value by request
-#     ...
+
+@app.put('/{todolist_uid}/task/{task_uid}', response_model=Task, tags=['api'])
+async def lock_task_api(
+    request: Request,
+    lock_status: bool = Form(...),
+    todolist_uid: str = Path(...),
+    task_uid: str = Path(...),
+) -> Task:
+    """
+    Bind/unbind task for current logged user.
+
+    Raises:
+        HTTPException: For any unsuccessfully codes.
+    """
+    todolist = await storage.todolist.get_todolist(todolist_uid)
+    if not todolist:
+        logging.warning(f'todolist {todolist=} not found')
+        raise HTTPException(HTTP_400_BAD_REQUEST, 'todolist not found')
+
+    try:
+        task: Task = [
+            task_item
+            for task_item in todolist.tasks
+            if task_item.uid == task_uid
+        ][0]
+    except IndexError:
+        logging.warning(f'task {task_uid=} not found in todolist')
+        raise HTTPException(HTTP_400_BAD_REQUEST, 'task not found')
+
+    if lock_status:
+        await _lock_handler(task_uid, request.state.current_user.id)
+
+    else:
+        await _unlock_handler(task, request.state.current_user.id)
+
+    return await storage.todolist.get_task(task_uid)
+
+
+async def _lock_handler(task_uid: str, user_id: int):
+    ok = await storage.todolist.lock_task(task_uid, user_id)
+    if not ok:
+        logging.warning('try lock task was already locked')
+        raise HTTPException(HTTP_409_CONFLICT, 'already locked')
+
+
+async def _unlock_handler(task: Task, user_id: int):
+    if task.bind_user != user_id:
+        logging.warning('try unlock task was bind to another user')
+        raise HTTPException(HTTP_400_BAD_REQUEST, 'task locked by another user')
+
+    await storage.todolist.unlock_task(task.uid)

@@ -9,8 +9,11 @@ ignore =
     WPS306,  # Used dataclasses
 
 per-file-ignores =
+    # B008: Do not perform function calls in argument defaults - conflicts with Fastapi
+    # WPS404: Found complex default value - conflicts with Fastapi
     # WPS412 Found `__init__.py` module with logic
     # F401: imported but unused
+    publist/webapp.py: B008, WPS404,
     publist/storage/__init__.py: WPS412, F401,
 
 [isort]

@@ -12,6 +12,7 @@ pydantic = {extras = ["dotenv"], version = "^1.9.0"}
 Jinja2 = "^3.1.2"
 uvicorn = {extras = ["uvloop"], version = "^0.17.6"}
 uvloop = "^0.16.0"
+python-multipart = "^0.0.5"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.950"
