@@ -56,7 +56,7 @@ async def get_todolist(uid: str) -> Optional[Todo]:
         return None
 
     tasks = [
-        await get_task(task_uid)
+        await get_task_or_raise(task_uid)
         for task_uid in await redis_pool.smembers(TODO_TASKS_KEY.format(uid))
     ]
 
@@ -98,6 +98,13 @@ async def get_task(uid: str) -> Optional[Task]:
     )
 
 
+async def get_task_or_raise(uid: str) -> Task:
+    task = await get_task(uid)
+    if not task:
+        raise RuntimeError('Task not found')
+    return task
+
+
 async def upsert_task(
     todolist_uid: str,
     title: str,
@@ -113,7 +120,7 @@ async def upsert_task(
     }
 
     if bind_user is not None:
-        mapping['bind_user'] = bind_user
+        mapping['bind_user'] = str(bind_user)
 
     await redis_pool.hset(
         TASK_KEY.format(task_uid),
@@ -125,7 +132,7 @@ async def upsert_task(
         task_uid,
     )
 
-    return await get_task(uid=task_uid)
+    return await get_task_or_raise(uid=task_uid)
 
 
 def _cleanup_uid(uid: Optional[str]) -> str:
