@@ -49,7 +49,6 @@ async def create_user() -> User:
 
 async def get_todolist(uid: str) -> Optional[Todo]:
     """Get todolist by UID."""
-    # todo test with tasks
     raw_todolist = await redis_pool.hgetall(
         TODO_KEY.format(_cleanup_uid(uid)),
     )
@@ -86,7 +85,6 @@ async def create_todolist(owner_id: int) -> Todo:
 
 
 async def get_task(uid: str) -> Optional[Task]:
-    # todo test
     raw_task = await redis_pool.hgetall(
         TASK_KEY.format(_cleanup_uid(uid)),
     )
@@ -100,18 +98,26 @@ async def get_task(uid: str) -> Optional[Task]:
     )
 
 
-async def upsert_task(todolist_uid: str, task_uid: Optional[str], title: str) -> Task:
-    # todo test
+async def upsert_task(
+    todolist_uid: str,
+    title: str,
+    task_uid: Optional[str] = None,
+    bind_user: Optional[int] = None,
+) -> Task:
     if not task_uid:
         task_uid = _generate_uid()
 
+    mapping = {
+        'uid': task_uid,
+        'title': title,
+    }
+
+    if bind_user is not None:
+        mapping['bind_user'] = bind_user
+
     await redis_pool.hset(
         TASK_KEY.format(task_uid),
-        mapping={
-            'uid': task_uid,
-            'title': title,
-            'bind_user': None,
-        }
+        mapping=mapping,
     )
 
     await redis_pool.sadd(
@@ -119,11 +125,7 @@ async def upsert_task(todolist_uid: str, task_uid: Optional[str], title: str) ->
         task_uid,
     )
 
-    return Task(
-        uid=task_uid,
-        title=title,
-        bind_user=None,
-    )
+    return await get_task(uid=task_uid)
 
 
 def _cleanup_uid(uid: Optional[str]) -> str:

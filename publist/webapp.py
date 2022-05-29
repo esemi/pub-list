@@ -62,15 +62,13 @@ async def edit_todo_list_page(uid: str, request: Request):
         ))
         return RedirectResponse(app.url_path_for('view_todo_list_page', uid=uid))
 
-    max_task_id = 0
-    if todolist.tasks:
-        max_task_id = max({task.idx for task in todolist.tasks})
-
     return templates.TemplateResponse('edit.html', {
         'request': request,
         'todolist': todolist,
-        'max_task_id': max_task_id,
-        'empty_task_count': max(1, 3 - len(todolist.tasks)),
+        'empty_task_count': max(
+            app_settings.empty_tasks_on_page_min,
+            app_settings.empty_tasks_on_page_max - len(todolist.tasks),
+        ),
     })
 
 

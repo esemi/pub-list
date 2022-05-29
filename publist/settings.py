@@ -10,6 +10,8 @@ class AppSettings(BaseSettings):
     auth_cookie_key: str = 'publist_auth_cookie'
     redis_dsn: RedisDsn = 'redis://localhost:6379/1'  # type: ignore
     redis_pool_size: int = 10
+    empty_tasks_on_page_max: int = 3
+    empty_tasks_on_page_min: int = 1
 
 
 app_settings = AppSettings(

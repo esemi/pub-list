@@ -8,13 +8,13 @@
     <body>
         <ul class="js-todolist-container" data-uid="{{ todolist.uid }}">
             {% for task in todolist.tasks %}
-                <li class="js-todolist-task" data-idx="{{ task.idx }}">
+                <li class="js-todolist-task" data-idx="{{ task.uid }}">
                     {{ task.title }}
                 </li>
             {% endfor %}
 
             {% for i in range(empty_task_count) %}
-                <li class="js-todolist-task" data-idx="{{ max_task_id + i }}">
+                <li class="js-todolist-task">
                 </li>
             {% endfor %}
         </ul>
