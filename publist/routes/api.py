@@ -1,7 +1,7 @@
 """REST-API for webapp."""
 
 import logging
-from typing import Tuple
+from typing import Optional, Tuple
 
 from fastapi import APIRouter, Form, HTTPException, Path
 from starlette.requests import Request
@@ -13,12 +13,12 @@ from publist import schemes, storage
 router = APIRouter(tags=['api'])
 
 
-@router.put('/{todolist_uid}/task/{task_uid}/lock', response_model=schemes.Task, tags=['api'])
+@router.put('/{todolist_uid}/task/{task_uid}/lock', response_model=schemes.Task)
 async def lock_task_api(
     request: Request,
-    lock_status: bool = Form(...),
     todolist_uid: str = Path(...),
     task_uid: str = Path(...),
+    lock_status: bool = Form(),
 ) -> schemes.Task:
     """
     Bind/unbind task for current logged user.
@@ -32,23 +32,38 @@ async def lock_task_api(
         await _lock_handler(task_uid, request.state.current_user.id)
 
     else:
-        await _unlock_handler(task, request.state.current_user.id)
+        await _unlock_handler(task, request.state.current_user.id)  # type: ignore
 
-    return await storage.todolist.get_task(task_uid)
-
-
-# @app.post('/{todolist_uid}/task/{task_uid}', response_model=Task, tags=['api'])
-# async def upsert_task_api(todolist_uid: str, task_uid: Optional[int], title: str) -> Task:
-#     """Update todolist tasks."""
-#     # todo test
-#     user = edit_sign_in_user()
-#     # todo check todolist ownership
-#     # todo update todolist.task title by idx
-#     ...
+    return await storage.todolist.get_task_or_raise(task_uid)
 
 
-@router.delete('/{todolist_uid}/task/{task_uid}', tags=['api'])
-async def remove_task_api(request: Request, todolist_uid: str, task_uid: str):
+@router.post('/{todolist_uid}/task', response_model=schemes.Task)
+async def upsert_task_api(
+    request: Request,
+    todolist_uid: str = Path(...),
+    task_uid: Optional[str] = Form(None),
+    title: str = Form(min_length=3),
+) -> schemes.Task:
+    """
+    Update todolist tasks.
+
+    Raises:
+        HTTPException: For any unsuccessfully codes.
+    """
+    # todo test
+    todolist, _ = await _parse_todolist_and_task_request(todolist_uid, task_uid)
+    if todolist.owner_user_id != request.state.current_user.id:
+        raise HTTPException(HTTP_403_FORBIDDEN, 'todolist not authored by current user')
+
+    return await storage.todolist.upsert_task(todolist_uid, title, task_uid)
+
+
+@router.delete('/{todolist_uid}/task/{task_uid}')
+async def remove_task_api(
+    request: Request,
+    todolist_uid: str = Path(...),
+    task_uid: str = Path(...),
+):
     """
     Remove task by todolist author.
 
@@ -59,7 +74,7 @@ async def remove_task_api(request: Request, todolist_uid: str, task_uid: str):
     if todolist.owner_user_id != request.state.current_user.id:
         raise HTTPException(HTTP_403_FORBIDDEN, 'todolist not authored by current user')
 
-    await storage.todolist.remove_task(todolist.uid, task.uid)
+    await storage.todolist.remove_task(todolist.uid, task.uid)  # type: ignore
     return JSONResponse(status_code=HTTP_202_ACCEPTED, content={})
 
 
@@ -78,9 +93,12 @@ async def _unlock_handler(task: schemes.Task, user_id: int):
     await storage.todolist.unlock_task(task.uid)
 
 
-async def _parse_todolist_and_task_request(todolist_uid: str, task_uid: str) -> Tuple[schemes.Todo, schemes.Task]:
+async def _parse_todolist_and_task_request(
+    todolist_uid: str,
+    task_uid: Optional[str],
+) -> Tuple[schemes.Todo, Optional[schemes.Task]]:
     """
-    Search todolist and included task by request.
+    Search todolist and (optional) included task by request.
 
     Raises:
         HTTPException: If Todolist or Task not found.
@@ -89,6 +107,9 @@ async def _parse_todolist_and_task_request(todolist_uid: str, task_uid: str) -> 
     if not todolist:
         logging.warning(f'todolist {todolist=} not found')
         raise HTTPException(HTTP_400_BAD_REQUEST, 'todolist not found')
+
+    if task_uid is None:
+        return todolist, None
 
     try:
         task: schemes.Task = [

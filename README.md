@@ -10,22 +10,16 @@ TODO
 - [x] backend API tests todos
 - [x] linters + tests to CI
 - [x] frontend todos
-
 - [x] user auth by cookie
-
-- [ ] impl backend API
-
+- [x] impl backend API
 - [ ] impl frontend
-
-- [ ] TTL for all keys
-
 - [ ] use .env for settings
 - [ ] deploy by github CI (up server-side config too)
-
 - [ ] UI to freelance
-
 - [ ] LICENSE.md
+- [ ] setup domain name (Uri)
 - [ ] up SSL cert
+- [ ] TTL for all keys
 - [ ] rate-limiter by nginx
 - [ ] CORS for api
 

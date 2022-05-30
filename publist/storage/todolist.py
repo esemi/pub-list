@@ -81,17 +81,15 @@ async def upsert_task(
     task_uid: Optional[str] = None,
 ) -> Task:
     """Insert or update task."""
-    if not task_uid:
-        task_uid = generate_uid()
-
     todolist_uid = cleanup_uid(todolist_uid)
     task_uid = cleanup_uid(task_uid)
+    if not task_uid:
+        task_uid = generate_uid()
 
     mapping = {
         'uid': task_uid,
         'title': title,
     }
-
     await redis_pool.hset(
         TASK_KEY.format(task_uid),
         mapping=mapping,
@@ -101,7 +99,6 @@ async def upsert_task(
         TODO_TASKS_KEY.format(todolist_uid),
         task_uid,
     )
-
     return await get_task_or_raise(uid=task_uid)
 
 
@@ -142,7 +139,6 @@ async def remove_task(
     task_uid: str,
 ) -> bool:
     """Remove task."""
-    # todo test
     todolist_uid = cleanup_uid(todolist_uid)
     task_uid = cleanup_uid(task_uid)
 
