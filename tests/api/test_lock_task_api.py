@@ -8,7 +8,7 @@ async def test_lock_task_api_happy_path(
     fixture_task: schemes.Task,
 ):
     response = await app_client.put(
-        url=f"/{fixture_todolist.uid}/task/{fixture_task.uid}",
+        url=f"/{fixture_todolist.uid}/task/{fixture_task.uid}/lock",
         data={'lock_status': True},
     )
 
@@ -25,7 +25,7 @@ async def test_lock_task_api_unlock(
     await storage.todolist.lock_task(fixture_task.uid, auth_by_user.id)
 
     response = await app_client.put(
-        url=f"/{fixture_todolist.uid}/task/{fixture_task.uid}",
+        url=f"/{fixture_todolist.uid}/task/{fixture_task.uid}/lock",
         data={'lock_status': False},
     )
 
@@ -38,7 +38,7 @@ async def test_lock_task_api_todolist_not_found(
     auth_by_user: schemes.User,
 ):
     response = await app_client.put(
-        url="/invalid-todolist-uid/task/invalid-task-uid",
+        url="/invalid-todolist-uid/task/invalid-task-uid/lock",
         data={'lock_status': True},
     )
 
@@ -52,7 +52,7 @@ async def test_lock_task_api_task_not_found(
     fixture_todolist: schemes.Todo,
 ):
     response = await app_client.put(
-        url=f'/{fixture_todolist.uid}/task/invalid-task-uid',
+        url=f'/{fixture_todolist.uid}/task/invalid-task-uid/lock',
         data={'lock_status': True},
     )
 
@@ -69,7 +69,7 @@ async def test_lock_task_api_already_locked(
     await storage.todolist.lock_task(fixture_task.uid, auth_by_user.id)
 
     response = await app_client.put(
-        url=f'/{fixture_todolist.uid}/task/{fixture_task.uid}',
+        url=f'/{fixture_todolist.uid}/task/{fixture_task.uid}/lock',
         data={'lock_status': True},
     )
 
@@ -87,7 +87,7 @@ async def test_lock_task_api_locked_by_another_user(
     await storage.todolist.lock_task(fixture_task.uid, fixture_user_second.id)
 
     response = await app_client.put(
-        url=f'/{fixture_todolist.uid}/task/{fixture_task.uid}',
+        url=f'/{fixture_todolist.uid}/task/{fixture_task.uid}/lock',
         data={'lock_status': False},
     )
 
