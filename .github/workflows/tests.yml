@@ -29,6 +29,11 @@ jobs:
     - name: Run flake8
       run: |
         poetry run flake8 publist/
+    
+    - uses: shogo82148/actions-setup-redis@v1
+      with:
+        redis-version: 'latest'
+    - run: redis-cli ping
 
     - name: Run tests
       run: |

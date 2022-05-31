@@ -11,7 +11,8 @@ async def test_upsert_task_insert(fixture_todolist: schemes.Todo):
 
 
 async def test_upsert_task_update(fixture_todolist: schemes.Todo):
-    exist_task = await storage.todolist.upsert_task(fixture_todolist.uid, 'first title', None, 123)
+    exist_task = await storage.todolist.upsert_task(fixture_todolist.uid, 'first title', None)
+    await storage.todolist.lock_task(exist_task.uid, 123)
 
     response = await storage.todolist.upsert_task(fixture_todolist.uid, 'updated title', task_uid=exist_task.uid)
 

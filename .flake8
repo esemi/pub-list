@@ -2,16 +2,20 @@
 max-line-length = 125
 
 ignore =
+    B008,    # Do not perform function calls in argument defaults - conflicts with Fastapi
     DAR101,  # Missing parameter(s) in Docstring
     DAR201,  # Missing "Returns" in Docstring
     WPS226,  # Found string literal over-use - false-positive check
     WPS305,  # F-strings is OK
     WPS306,  # Used dataclasses
+    WPS404,  # Found complex default value - conflicts with Fastapi
 
 per-file-ignores =
-    # WPS412 Found `__init__.py` module with logic
-    # F401: imported but unused
+    # DAR402: Excess exception(s) in Raises section - false positive check
+    # WPS202: Found too many module members
+    # WPS412 Found `__init__.py` module with logic - false positive
+    # F401: imported but unused - false positive
     publist/storage/__init__.py: WPS412, F401,
-
-[isort]
-line_length = 125
+    publist/storage/todolist.py: WPS202,
+    publist/routes/__init__.py: WPS412,
+    publist/routes/api.py: DAR402,

@@ -1,5 +1,4 @@
 """Methods for work with Todolist and Task entities in redis."""
-
 from typing import Optional
 
 from publist.schemes import Task, Todo
@@ -7,6 +6,8 @@ from publist.storage.redis_helpers import cleanup_uid, generate_uid, redis_pool
 
 TODO_KEY = 'publist:todolist:{0}'
 TODO_TASKS_KEY = 'publist:todolist:{0}:tasks'
+TASK_KEY = 'publist:task:{0}'
+TASK_BINDING_LOCK_KEY = 'publist:task:{0}:lock'
 
 
 async def get_todolist(uid: str) -> Optional[Todo]:
@@ -27,26 +28,6 @@ async def get_todolist(uid: str) -> Optional[Todo]:
         owner_user_id=int(raw_todolist.get('owner_user_id')),
         tasks=tasks,
     )
-
-
-async def create_todolist(owner_id: int) -> Todo:
-    """Create new todolist for specified owner-user."""
-    uid = generate_uid()
-    await redis_pool.hset(
-        TODO_KEY.format(uid),
-        mapping={
-            'uid': uid,
-            'owner_user_id': owner_id,
-        },
-    )
-    return Todo(
-        uid=uid,  # type: ignore
-        owner_user_id=owner_id,  # type: ignore
-        tasks=[],
-    )
-
-
-TASK_KEY = 'publist:task:{0}'
 
 
 async def get_task(uid: str) -> Optional[Task]:
@@ -77,13 +58,31 @@ async def get_task_or_raise(uid: str) -> Task:
     return task
 
 
+async def create_todolist(owner_id: int) -> Todo:
+    """Create new todolist for specified owner-user."""
+    uid = generate_uid()
+    await redis_pool.hset(
+        TODO_KEY.format(uid),
+        mapping={
+            'uid': uid,
+            'owner_user_id': owner_id,
+        },
+    )
+    return Todo(
+        uid=uid,  # type: ignore
+        owner_user_id=owner_id,  # type: ignore
+        tasks=[],
+    )
+
+
 async def upsert_task(
     todolist_uid: str,
     title: str,
     task_uid: Optional[str] = None,
-    bind_user: Optional[int] = None,
 ) -> Task:
     """Insert or update task."""
+    todolist_uid = cleanup_uid(todolist_uid)
+    task_uid = cleanup_uid(task_uid)
     if not task_uid:
         task_uid = generate_uid()
 
@@ -91,10 +90,6 @@ async def upsert_task(
         'uid': task_uid,
         'title': title,
     }
-
-    if bind_user is not None:
-        mapping['bind_user'] = str(bind_user)
-
     await redis_pool.hset(
         TASK_KEY.format(task_uid),
         mapping=mapping,
@@ -104,5 +99,53 @@ async def upsert_task(
         TODO_TASKS_KEY.format(todolist_uid),
         task_uid,
     )
-
     return await get_task_or_raise(uid=task_uid)
+
+
+async def lock_task(
+    task_uid: str,
+    user_id: int,
+) -> bool:
+    """Lock task for user."""
+    task_uid = cleanup_uid(task_uid)
+    lock_task_result = await redis_pool.incr(TASK_BINDING_LOCK_KEY.format(task_uid))
+    if lock_task_result > 1:
+        return False
+
+    await redis_pool.hset(
+        TASK_KEY.format(task_uid),
+        key='bind_user',
+        value=user_id,
+    )
+    return True
+
+
+async def unlock_task(
+    task_uid: str,
+) -> bool:
+    """Unlock task from user."""
+    task_uid = cleanup_uid(task_uid)
+
+    await redis_pool.hdel(
+        TASK_KEY.format(task_uid),
+        'bind_user',
+    )
+    await redis_pool.delete(TASK_BINDING_LOCK_KEY.format(task_uid))
+    return True
+
+
+async def remove_task(
+    todolist_uid: str,
+    task_uid: str,
+) -> bool:
+    """Remove task."""
+    todolist_uid = cleanup_uid(todolist_uid)
+    task_uid = cleanup_uid(task_uid)
+
+    await redis_pool.delete(TASK_KEY.format(task_uid))
+
+    await redis_pool.srem(
+        TODO_TASKS_KEY.format(todolist_uid),
+        task_uid,
+    )
+    return True
